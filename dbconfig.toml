@@ -1,0 +1,69 @@
+TechExcelUATServer = "192.168.150.21"
+TechExcelUATPort = 51433
+TechExcelUATUser = "ftc"
+TechExcelUATPassword = "Ftc@123"
+TechExcelUATDatabase = "DevDB"
+TechExcelUATDBType = "mssql"
+
+
+#####setting Kambala db connection details
+KamabalaDBServer = "192.168.150.0"
+KamabalaDBPort = 581
+KamabalaDBUser = ""
+KamabalaDBPassword = ""
+KamabalaDBDatabase = ""
+KamabalaDBDBType = "mysql"
+
+#####setting Kambala db connection details 
+KamabalaApiDBServer = "192.168.150.-"
+KamabalaApiDBPort = 550
+KamabalaApiDBUser = ""
+KamabalaApiDBPassword = ""
+KamabalaApiDBDatabase = ""
+KamabalaApiDBDBType = "mysql"
+
+#####setting Maria db connection details
+MariaDBServer = "192.168.2.5"
+MariaDBPort = 3306
+MariaDBUser = "root"
+MariaDBPassword = "root"
+MariaDBDatabase = "dev"
+MariaDBDBType = "mysql"
+
+#####setting MariaEkyc db connection details
+MariaEkycServer = "192.168.2.5"
+MariaEkycPort = 3306
+MariaEkycUser = "root"
+MariaEkycPassword = "root"
+MariaEkycDatabase = "ekyc"
+MariaEkycDBType = "mysql"
+
+###### setting SSO db connection details
+SSODBServer = "192.168.150.12"
+SSODBPort = 53306
+SSODBUser = "root"
+SSODBPassword = "sql@admin!@#%"
+SSODBDatabase = "ftprd"
+SSODBDBType = "mysql"
+
+
+#####setting Maria IPO db connection details
+IPODBServer = "192.168.2.5"
+IPODBPort = 3306
+IPODBUser = "root"
+IPODBPassword = "root"
+#IPODBDatabase = "IPO"
+IPODBDatabase = "dev"
+IPODBDBType = "mysql"
+ 
+
+#####setting Maria SSO db connection details
+#SSODBServer = "192.168.150.12"
+#SSODBPort = 53306
+#SSODBUser = "root"
+#SSODBPassword = "sql@admin!@#%"
+#SSODBDatabase = "ftprd"
+#SSODBDBType = "mysql"
+
+
+
