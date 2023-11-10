@@ -1,0 +1,7 @@
+#To calculate the how many months and days from the day till now 
+
+SELECT 
+  CONCAT(
+    FLOOR(DATEDIFF(NOW(), '2023-08-01') / 30), ' MONTH ',
+    DATEDIFF(NOW(), '2023-08-01') % 30, ' DAYS'
+  ) AS result;
