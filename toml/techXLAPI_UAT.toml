@@ -1,0 +1,22 @@
+# filename: config.toml
+
+UrlUserName="api"
+UrlPassword="api@123"
+UrlDatabase="capsfo"
+
+UrlDataYear="2023"
+
+ReceiptAPI = "http://192.168.150.21:8686/techexcelapi/index.cfm/ReceiptNormal/ReceiptNormal"
+JournalAPI = "http://192.168.150.21:8686/techexcelapi/index.cfm/JOURNAL/JOURNAL?"
+
+AdminApiSUserToken = "FCS_121_AdminAPISusertoken"
+
+
+#---------------------------------------------------------------------
+#BSE SGB ORDER JV
+#---------------------------------------------------------------------
+BseSGBorderAccount = "EXP011"
+PaymentCode = "NSE_CASH"
+
+#Get PaymentCode of Client
+PaymentCode_API = "http://mqueries.flattrade.in:29091/query/?qc=CLSGMT&typ=v&qp1="

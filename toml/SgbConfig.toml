@@ -1,0 +1,27 @@
+# ProcessFlag
+NonProcess = "N"
+Processed = "Y"
+ErrorCase = "E"
+
+#statusFlag
+# For Nonprocess use ="N" from proccess Flag
+Success = "Y"
+VerifyError = "V"
+InsufficientError = "I"
+BlockClientFundError = "B"
+ReverseProcessError = "R"
+FrontOfficeError = "F"
+ExchangeError = "E"
+
+#Configuration time for SGB
+SGB_SchConfig_time = "13:30:00"
+
+#Configuration for Apply anyDay
+SGB_ApplyDay_Flag = "N"
+
+#Configuration For Specific Clients
+SGB_Specific_Client = ""
+
+#ProcessFlagForSchedule
+Process_SGB_Flag = "E"
+Schedule_SGB_Flag = "V"
