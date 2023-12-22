@@ -1,0 +1,54 @@
+#---------------------------------------------------------------------
+#NSE API
+#---------------------------------------------------------------------
+
+Login = "https://uat-ipo.nseindia.com/eipo/v1/login"
+ChangePassword = "https://uat-ipo.nseindia.com/v1/changePassword"
+Master = "https://uat-ipo.nseindia.com/eipo/v1/ipomaster"
+SgbMaster = "https://uat-ipo.nseindia.com/eipo/v1/sgbmaster"
+#SgbMaster = "https://eipo.nseindia.com/eipo/v1/sgbmaster"
+NseSgbOrder = "https://uat-ipo.nseindia.com/eipo/v1/sgb/add"
+FetchSgbTranscation = "https://uat-ipo.nseindia.com/eipo/v1/sgb/"
+Transcation = "https://uat-ipo.nseindia.com/eipo/v1//transactions/addbulk"
+Apply = "http://localhost:29091/applyipo"
+
+#Login = "https://eipo.nseindia.com/eipo/v1/login"
+#ChangePassword = "https://eipo.nseindia.com/v1/changePassword"
+#Master = "https://eipo.nseindia.com/eipo/v1/ipomaster"
+#Transcation = "https://eipo.nseindia.com/eipo/v1//transactions/addbulk"
+#Apply = "http://localhost:29091/applyipo"
+
+#---------------------------------------------------------------------
+#BSE API
+#---------------------------------------------------------------------
+
+BseLogin = "https://uat.bseindia.in/ibbsmsgapi/iBBSWebBroadcastApi.svc/v1/login"
+BseSgbMaster = "https://uat.bseindia.in/ibbsmsgapi/iBBSWebBroadcastApi.svc/v1/sgbopenissue"
+BseSgbOrder = "https://uat.bseindia.in/ibbssgbapi/sgbapi.svc/v1/sgborder"
+BseSgbDownload="https://uat.bseindia.in/ibbssgbapi/sgbapi.svc/v1/sgbdownload"
+BsePassword="https://uat.bseindia.in/ibbssgbapi/sgbapi.svc/v1/changepwd"
+
+#BsePassword="https://uat.bseindia.in/ibbsapi/ibbsapiservice.svc/v1/changepwd"
+
+BseIpoMaster = "https://uat.bseindia.in/ibbsmsgapi/iBBSWebBroadcastApi.svc/v1/openissue"
+BseIpoCategory = "https://uat.bseindia.in/ibbsmsgapi/iBBSWebBroadcastApi.svc/v1/issuetime"
+BseIpoOrder = "https://uat.bseindia.in/ibbsapi/ibbsapiservice.svc/v1/ipoorder"
+
+#---------------------------------------------------------------------
+#FUND CHECKING API
+#---------------------------------------------------------------------
+
+#OLD API URL----> VerifyFund =  "http://192.168.150.21:29091/query/?qc=CFNDBL&typ=v&qp1="
+#NEW API URL
+VerifyUser = "ADMIN2"
+VerifyFOFund =  "http://192.168.150.16:5586/NorenWCAdmin/Limits"
+PayoutUrl = "http://192.168.150.16:5586/NorenWCAdmin/UpdatePayout"
+PayinUrl = "http://192.168.150.16:5586/NorenWCAdmin/UpdatePayin"
+
+#---------------------------------------------------------------------
+# MarketData API
+#---------------------------------------------------------------------
+MarketDemand = "https://uat-ipo.nseindia.com/eipo/mktdata/v1/demand/"
+MarketCatwise = "https://uat-ipo.nseindia.com/eipo/mktdata/v1/catwise/"
+Credential = "MTQ1NzJebGFrc2htYW5hbjpiZXN0QDEyMzQ1Njc="
+#Credential = "MTQ1NzJeUkFNOkJlc3RAMTIzNDU2Nzg="

@@ -1,0 +1,98 @@
+<html>
+
+<head>
+    <title>SGB ORDERED Details</title>
+    <style>
+        .oddrow {
+            background-color: #eeeeee;
+        }
+
+        .evenrow {
+            background-color: #ffffff;
+        }
+
+        .grandtotal {
+            background-color: #98D7D1;
+        }
+    </style>
+</head>
+
+<body style="background-color:#EDF7F6;">
+    <center>                           
+        <table width="600" cellpadding="10" cellspacing="0" style="min-width:600px;  background-color:#ffffff; ">
+            <tr>
+                <td width="15%" height="33%"> <img src="https://flattrade.s3.ap-south-1.amazonaws.com/logo/novo.png" alt=""
+                        height="100%" width="100%"></td>
+                <td width="65%" height="33%" style="margin-top: 20px; text-align: center; vertical-align: middle;">
+                    <div style="margin-top: 15px;  font-family: arial; font-size: large; color: #3c71b6;">
+                        <p><b>SGB ORDER REPORT</b></p>
+
+                    </div>
+                </td>
+                <td width="20%" height="33%" ><img src="https://flattrade.s3.ap-south-1.amazonaws.com/promo/ftlogoNew.png" alt=""
+                        width="100%" height="100%"></td>
+            </tr>
+            <tr>
+                <td colspan="3">
+                    <!-- <p><b>Subject</b>
+                        <p style="text-align: center;font-family: 'arial';color: red;"><b>Urgent Request for IT Team to Verify Error in Client Account</b></p> -->
+                    <p><b>Dear IT Department </b></p>
+                    <p
+                        style="text-align: left;font-family: 'arial'; font-size: 13px;; line-height:20px;text-indent: 25px; ">
+                        We have encountered a problem related to client details that is affecting our operations and requires immediate attention from the IT team. unable to  get an Response From an Exchange and Error on  Reversing Jv Process For Client
+                    </p>
+                    <p><B>Journal Vouchers (JV) - {{.Date}}</B></p>
+                    <table class="pt-5" cellpadding="0" cellspacing="0" align="center"
+                        style=" border: 1px solid rgb(218, 216, 216);width: 100%; ">
+                        <thead>
+                            <tr style="background-color: #0965da;">
+                                <!-- <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center;">
+                                    SI No</th> -->
+                                <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center;">
+                                    Client ID </th>
+                                <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
+                                    OrderNo </th>
+                                    <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
+                                    JV Unit </th>
+                                    <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
+                                    JV Amount </th>
+                        </thead>
+                        <tbody>
+               
+                            <!-- <tr>
+                                <td valign="top" align="center"
+                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{ .SINo}} </td> -->
+                                <td valign="top" align="center"
+                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{.ClientId }} </td>
+                                <td valign="top" align="center"
+                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{ .OrderNo }} </td>
+                                    <td valign="top" align="center"
+                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{ .JvUnit }} </td>
+                                    <td valign="top" align="center"
+                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{ .JvAmount }} </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="font-family: 'arial'; font-size: 13px; line-height:18px;">
+                        <b>Please Note:</b><br>
+                        <span style="font: size 0.8rem;padding-left: 25px; font-family: 'arial';">
+                            We kindly request you to Identify the solution on Processing of JV issue after Exchange.</span>
+                        <br>
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </center>
+</body>
+
+</html>
