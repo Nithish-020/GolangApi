@@ -1,0 +1,72 @@
+# ProcessFlag
+NonProcess = "N"
+Processed = "Y"
+ErrorCase = "E"
+
+#statusFlag
+# For Nonprocess use ="N" from proccess Flag
+
+#This Code Successfully Processed and Passed All JV Cases without getting error
+Success = "Y"
+
+#This Code is to indicate error getting while verifying clients account maxpayout
+VerifyError = "V"
+
+#This code indicates client account does not have sufficient amount in account to place sgb
+InsufficientError = "I"
+
+#this code indicates if we getting error  while processing Back Office JV 
+BlockClientFundError = "B"
+
+#This code indicates if we getting error  when reversing the executed JV 
+ReverseProcessError = "R"
+
+#This code indicates if we getting error while processing Front Office JV 
+FrontOfficeError = "F"
+
+#This Code indicates if we getting error while placing the orders on exchange 
+ExchangeError = "E"
+
+SGB_Status_Fetch_Count = "15"
+
+SGB_StartTime = "00:00:00"
+SGB_EndTime = "23:59:59"
+SGB_CloseTime = "17:30:00"
+
+#to restrict the quantity in SGB
+SGB_MAXQUANTITY = "4000"
+
+#SgbNoDataText
+SGB_MasterNoDataText = "No SGB are open for sale currently !!."
+SGB_HistoryNoDataText = "You haven't invested in any SGBs."
+SGB_DiscountText = "Online Discount ₹"
+SGB_ShowDiscount = "Y"
+SGB_CancelAllowed = "Y"
+SGB_ModifyAllowed = "Y"
+SGB_InfoText = "If you want to Modify the bond please cancel the existing bond."
+SGB_DefaultRefundText = "Do you want to delete the application ?"
+
+#Configuration time for SGB
+SGB_SchConfig_time = "17:30:00"
+
+#Configuration for Apply anyDay
+SGB_ApplyDay_Flag = "N"
+
+#Configuration For Specific Clients
+SGB_Specific_Client = "FT000069"
+
+#ProcessFlagForSchedule
+Process_SGB_Flag = "N"
+Schedule_SGB_Flag = "N"
+
+#Configuration for Immediate Apply to Exchange
+#(I - ImmediateProcess ,L - LastDayProcess)
+SGB_Immediate_Flag = "L" 
+
+#MailConfiguration LookUp Details
+SGB_EmailId_LookupCode = "sgb_email_dist"
+SGB_EmailContent_LookupCode = "sgb_email_content"
+
+
+#SGB_Scheduler_Key
+SGB_API_KEY = "FTC"
