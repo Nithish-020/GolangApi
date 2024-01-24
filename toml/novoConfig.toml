@@ -1,0 +1,61 @@
+#----------------------------------------------------------------
+#IPO
+#----------------------------------------------------------------
+
+IPO_ClientEmail_Subject = "IPO Order"
+
+IPO_ClientEmail_html = "html/IpoOrderTemplate.html"
+
+#----------------------------------------------------------------
+#SGB
+#----------------------------------------------------------------
+
+SGB_ClientEmail_Subject = "SGB Order"
+
+SGB_CommonTemplate = "html/CommonTemplate.html"
+
+#commented by pavithra
+#SGB_VerifyFund_html = "html/VerifyClientFund.html"
+SGB_VerifyFOFund_html = "html/VerifyClientFund.html"
+
+SGB_BlockClientFund_html = "html/BlockClientMail.html"
+
+SGB_InsufficientAmt_html = "html/InsufficientAmount.html"
+
+SGB_SuccessOrderMail_html = "html/Exchagestatus.html"
+
+SGB_OrderSuccess_html = "html/SgbOrderTemplate.html"
+
+SGB_RPBO_Failed_Mail_html = "html/ReverseProcessFailed.html"
+
+SGB_RPBO_SUCCESS_Mail_html = "html/RpSuccess.html"
+
+SGB_RPFO_Failed_Mail_html = "html/RpFrontoffice.html"
+
+
+
+NCB_ClientEmail_Subject = "NCB Order"
+
+NCB_CommonTemplate = "html/NcbCommonTemplate.html"
+
+#NCB_VerifyFund_html = "html/VerifyClientFund.html"
+NCB_VerifyFOFund_html = "html/NcbVerifyClientFund.html"
+
+NCB_BlockClientFund_html = "html/NcbBlockClientMail.html"
+
+NCB_InsufficientAmt_html = "html/NcbInsufficientAmount.html"
+
+NCB_SuccessOrderMail_html = "html/NcbExchagestatus.html"
+
+NCB_OrderSuccess_html = "html/NcbOrderTemplate.html"
+
+NCB_RPBO_Failed_Mail_html = "html/NcbReverseProcessFailed.html"
+
+NCB_RPBO_SUCCESS_Mail_html = "html/NCbRpSuccess.html"
+
+NCB_RPFO_Failed_Mail_html = "html/NcbRpFrontoffice.html"
+
+
+######Alternate way to Get Login Email  For Temperary Purpose
+LoginUrl =  "http://192.168.150.21:29091/query/?qc=CLEML&typ=v&qp1="
+

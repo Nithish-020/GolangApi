@@ -1,0 +1,37 @@
+# filename: config.toml
+
+UrlUserName="api"
+UrlPassword="api@123"
+UrlDatabase="capsfo"
+
+UrlDataYear="2023"
+
+ReceiptAPI = "http://192.168.150.21:8686/techexcelapi/index.cfm/ReceiptNormal/ReceiptNormal"
+JournalAPI = "http://192.168.150.21:8686/techexcelapi/index.cfm/JOURNAL/JOURNAL?"
+
+AdminApiSUserToken = "FCS_121_AdminAPISusertoken"
+
+
+#---------------------------------------------------------------------
+#BSE SGB ORDER JV
+#---------------------------------------------------------------------
+BseSGBorderAccount = "EXP011"
+PaymentCode = "NSE_CASH"
+
+NseNCBorderAccount = "EXP011"
+
+#Get PaymentCode of Client
+PaymentCode_API = "http://mqueries.flattrade.in:29091/query/?qc=CLSGMT&typ=v&qp1="
+
+#---------------------------------------------------------------------
+#FUND CHECKING API
+#---------------------------------------------------------------------
+
+#OLD API URL----> VerifyFund =  "http://192.168.150.21:29091/query/?qc=CFNDBL&typ=v&qp1="
+#NEW API URL
+VerifyUser = "ADMIN2"
+#VerifyFOFund =  "http://192.168.150.16:5586/NorenWCAdmin/Limits"
+VerifyMaxPayOut =  "http://192.168.150.16:7766/NorenWCSecuredApis/GetMaxPayoutAmount"
+
+PayoutUrl = "http://192.168.150.16:5586/NorenWCAdmin/UpdatePayout"
+PayinUrl = "http://192.168.150.16:5586/NorenWCAdmin/UpdatePayin"
