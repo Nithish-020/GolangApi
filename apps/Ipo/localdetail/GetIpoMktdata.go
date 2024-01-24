@@ -27,6 +27,7 @@ type ipoMktCatwiseStruct struct {
 type IpoMktDataStruct struct {
 	IpoMktDemandArr  []ipoMktDemandStruct  `json:"ipoMktDemandArr"`
 	IpoMktCatwiseArr []ipoMktCatwiseStruct `json:"ipoMktCatwiseArr"`
+	NoDataText       string                `json:"noDataText"`
 	Status           string                `json:"status"`
 	ErrMsg           string                `json:"errMsg"`
 }
@@ -151,6 +152,10 @@ func GetIpoMKtData(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			lRespRec.IpoMktDemandArr = lIpoMktDemand
+		}
+
+		if lIpoMktCatwise == nil && lIpoMktDemand == nil {
+			lRespRec.NoDataText = "we're sorry but the record not available for this particular category"
 		}
 		// Marshaling the response structure to lData
 		lData, lErr5 := json.Marshal(lRespRec)

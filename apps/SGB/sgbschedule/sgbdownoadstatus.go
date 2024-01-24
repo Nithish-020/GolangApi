@@ -292,10 +292,13 @@ func SgbBrokerList() ([]SgbBrokers, error) {
 	} else {
 		defer lDb.Close()
 		lCoreString := `select Bm.Id ,d.Stream 
-						from a_ipo_brokermaster bm ,a_ipo_directory d 
+						from a_ipo_brokermaster bm ,a_ipo_directory d,a_ipo_memberdetails m 
 						where bm.Id = d.brokerMasterId 
-						and Bm.Status = 'Y' 
-						and d.Status = 'Y'`
+						and bm.Id = m.BrokerId 
+						and m.AllowedModules like '%Sgb%'
+						and bm.Status = 'Y' 
+						and d.Status ='Y'
+						and m.Flag = 'Y'`
 		lRows, lErr2 := lDb.Query(lCoreString)
 		if lErr2 != nil {
 			log.Println("SGBFSC02", lErr2)

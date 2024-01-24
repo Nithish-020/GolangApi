@@ -1,7 +1,7 @@
-package apdb
+package ftdb
 
 import (
-	"apipkg/genpkg"
+	"fcs23pkg/genpkg"
 	"fmt"
 	"strconv"
 )

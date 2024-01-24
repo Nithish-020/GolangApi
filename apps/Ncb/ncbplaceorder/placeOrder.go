@@ -1,9 +1,11 @@
 package ncbplaceorder
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fcs23pkg/apps/Ipo/brokers"
 	"fcs23pkg/apps/Ncb/validatencb"
+	"fcs23pkg/apps/abhilogin"
 	"fcs23pkg/apps/clientDetail"
 	"fcs23pkg/apps/validation/adminaccess"
 	"fcs23pkg/apps/validation/apiaccess"
@@ -24,11 +26,16 @@ type NcbReqStruct struct {
 	MasterId      int     `json:"masterId"`
 	Unit          int     `json:"unit"`
 	OldUnit       int     `json:"oldUnit"`
-	ActionCode    string  `json:"actionCode"`
+	ActionType    string  `json:"actionType"`
+	Price         float64 `json:"price"`
+	UnitPrice     float64 `json:"unitPrice"`
 	OrderNo       int     `json:"orderNo"`
 	ApplicationNo string  `json:"applicationNo"`
 	Symbol        string  `json:"symbol"`
+	Series        string  `json:"series"`
 	Amount        float64 `json:"amount"`
+	SIText        string  `json:"SItext"`
+	SIValue       bool    `json:"SIvalue"`
 }
 
 // this struct is used to get the bid details.
@@ -121,36 +128,41 @@ func NcbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 
 		lRespRec.Status = common.SuccessCode
 
-		lExchange, lErr1 := adminaccess.NcbFetchDirectory(lBrokerId)
+		lConfigFile := common.ReadTomlConfig("toml/NcbConfig.toml")
+		lProcessingMode := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["NCB_Immediate_Flag"])
+
+		//-----------START TO GETTING CLIENT AND STAFF DETAILS--------------
+
+		lClientId, lErr1 := apiaccess.VerifyApiAccess(r, common.ABHIAppName, common.ABHICookieName, "/ncb")
 		if lErr1 != nil {
 			lRespRec.Status = common.ErrorCode
 			lRespRec.ErrMsg = "PNPO01" + lErr1.Error()
-			fmt.Fprintf(w, helpers.GetErrorString("PNPO01", "Directory Not Found. Please try after sometime"))
+			fmt.Fprintf(w, helpers.GetErrorString("PNPO01", "UserDetails not Found"))
 			return
 		} else {
-			lExchange = "NSE"
-			log.Println("lExchange", lExchange)
-			lRespRec.Status = common.SuccessCode
-
-			//-----------START TO GETTING CLIENT AND STAFF DETAILS--------------
-
-			lClientId, lErr2 := apiaccess.VerifyApiAccess(r, common.ABHIAppName, common.ABHICookieName, "/ncb")
-			if lErr2 != nil {
+			if lClientId == "" {
+				lErr = common.CustomError("UserDetails not Found")
 				lRespRec.Status = common.ErrorCode
-				lRespRec.ErrMsg = "PNPO02" + lErr2.Error()
-				fmt.Fprintf(w, helpers.GetErrorString("PNPO02", "UserDetails not Found"))
+				lRespRec.ErrMsg = "PNPO01" + lErr.Error()
+				fmt.Fprintf(w, helpers.GetErrorString("PNPO01", "UserDetails not Found"))
 				return
-			} else {
-				if lClientId == "" {
-					lRespRec.Status = common.ErrorCode
-					fmt.Fprintf(w, helpers.GetErrorString("PNPO02", "UserDetails not Found"))
-					return
-				}
 			}
+		}
+
+		//added by naveen:to fetch the source (from where mobile or web)by cookie name
+
+		source, lErr2 := abhilogin.GetSourceOfUser(r, common.ABHICookieName)
+		if lErr2 != nil {
+			lRespRec.Status = common.ErrorCode
+			lRespRec.ErrMsg = "PNPO02" + lErr2.Error()
+			fmt.Fprintf(w, helpers.GetErrorString("PNPO02", "Unable to get source"))
+			return
+		} else {
+			log.Println("source in api", source)
+
 			//-----------END OF GETTING CLIENT AND STAFF DETAILS----------------
 			// Read the request body values in lBody variable
 			lBody, lErr3 := ioutil.ReadAll(r.Body)
-			log.Println(string(lBody))
 			if lErr3 != nil {
 				log.Println("PNPO03", lErr3.Error())
 				lRespRec.Status = common.ErrorCode
@@ -159,7 +171,6 @@ func NcbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 			} else {
 				// Unmarshal the request body values in lReqRec variable
 				lErr4 := json.Unmarshal(lBody, &lReqRec)
-				log.Println("lReq", lReqRec)
 				if lErr4 != nil {
 
 					log.Println("PNPO04", lErr4.Error())
@@ -167,53 +178,124 @@ func NcbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 					fmt.Fprintf(w, helpers.GetErrorString("PNPO04", "Unable to get your request now. Please try after sometime"))
 					return
 				} else {
-					lExchangeReq, lErr5 := ConstructNCBReqStruct(lReqRec, lClientId)
-					if lErr5 != nil {
-						log.Println("PNPO05", lErr5.Error())
+
+					// lErr5 := json.Unmarshal(lBody, &lDynamicStruct)
+					// if lErr5 != nil {
+					// 	log.Println("PNPO05", lErr5.Error())
+					// 	lRespRec.Status = common.ErrorCode
+					// 	fmt.Fprintf(w, helpers.GetErrorString("PNPO05", "Unable to process your request now. Please try after sometime"))
+					// 	return
+					// } else {
+					lAcceptOrder, lErrMsg, lMasterId, lErr6 := NcbAcceptClientToOrder(lReqRec, lClientId, lBrokerId)
+					if lErr6 != nil {
+						log.Println("PNPO06", lErr6.Error())
 						lRespRec.Status = common.ErrorCode
-						fmt.Fprintf(w, helpers.GetErrorString("PNPO05", "Unable to process your request now. Please try after sometime"))
+						fmt.Fprintf(w, helpers.GetErrorString("PNPO06", "Unable to process your request now. Please try after sometime"))
 						return
 					} else {
-						log.Println(lExchangeReq)
-						log.Println(lReqRec.MasterId, "lReqRec.MasterId")
-						lTodayAvailable, lErr6 := validatencb.CheckNcbEndDate(lReqRec.MasterId)
-						if lErr6 != nil {
-							log.Println("PNPO06", lErr6.Error())
-							lRespRec.Status = common.ErrorCode
-							fmt.Fprintf(w, helpers.GetErrorString("PNPO06", "Unable to process your request now. Please try after sometime"))
-							return
-						} else {
-							if lTodayAvailable == "True" {
 
-								lErr7 := LocalUpdate(lReqRec, lExchangeReq, lClientId, lExchange, r, lBrokerId)
-								if lErr7 != nil {
-									log.Println("PNPO07", lErr7.Error())
+						if lAcceptOrder == true {
+							lTimeToApply, lErr7 := NcbTimeToAcceptOrder(lMasterId)
+							if lErr7 != nil {
+								log.Println("PNPO07", lErr7.Error())
+								lRespRec.Status = common.ErrorCode
+								fmt.Fprintf(w, helpers.GetErrorString("PNPO07", "Unable to process your request now. Please try after sometime"))
+								return
+							} else {
+								log.Println("lTimeToApply", lTimeToApply)
+
+								if lTimeToApply == "Y" {
 									lRespRec.Status = common.ErrorCode
-									fmt.Fprintf(w, helpers.GetErrorString("PNPO07", "Unable to process your request now. Please try after sometime"))
+									fmt.Fprintf(w, helpers.GetErrorString("PNPO07", "Bond Closed,No More Orders are Acceptable"))
 									return
-								} else {
-									if lReqRec.ActionCode == "N" {
-										lRespRec.OrderStatus = "Order Placed Successfully"
-										lRespRec.Status = common.SuccessCode
-									} else if lReqRec.ActionCode == "M" {
-										lRespRec.OrderStatus = "Order Modified Successfully"
-										lRespRec.Status = common.SuccessCode
-									} else if lReqRec.ActionCode == "D" {
-										lRespRec.OrderStatus = "Order Deleted Successfully"
-										lRespRec.Status = common.SuccessCode
+								} else if lTimeToApply == "N" {
+
+									lTodayAvailable, lErr8 := validatencb.CheckNcbEndDate(lReqRec.MasterId)
+									if lErr8 != nil {
+										log.Println("PNPO08", lErr8.Error())
+										lRespRec.Status = common.ErrorCode
+										fmt.Fprintf(w, helpers.GetErrorString("PNPO08", "Unable to process your request now. Please try after sometime"))
+										return
+									} else {
+										if lTodayAvailable == "True" {
+											if (lReqRec.SIValue == true && lProcessingMode == "L") ||
+												(lReqRec.SIValue == false && lProcessingMode == "I") {
+
+												lExchangeReq, lEmailId, lErr9 := ConstructNCBReqStruct(lReqRec, lClientId)
+												if lErr9 != nil {
+													log.Println("PNPO09", lErr9.Error())
+													lRespRec.Status = common.ErrorCode
+													fmt.Fprintf(w, helpers.GetErrorString("PNPO09", "Unable to process your request now. Please try after sometime"))
+													return
+												} else {
+
+													lExchange, lErr10 := adminaccess.NcbFetchDirectory(lBrokerId)
+													if lErr10 != nil {
+														lRespRec.Status = common.ErrorCode
+														lRespRec.ErrMsg = "PNPO10" + lErr10.Error()
+														fmt.Fprintf(w, helpers.GetErrorString("PNPO10", "Directory Not Found. Please try after sometime"))
+														return
+													} else {
+														if lProcessingMode != "I" {
+															lErr11 := LocalUpdate(lReqRec, lExchangeReq, lClientId, lExchange, lBrokerId, source, lEmailId)
+															if lErr11 != nil {
+																log.Println("PNPO11", lErr11.Error())
+																lRespRec.Status = common.ErrorCode
+																fmt.Fprintf(w, helpers.GetErrorString("PNPO11", "Unable to process your request now. Please try after sometime"))
+																return
+															} else {
+																if lReqRec.ActionType == "N" {
+																	lRespRec.OrderStatus = "Order Placed Successfully"
+																	lRespRec.Status = common.SuccessCode
+																} else if lReqRec.ActionType == "M" {
+																	lRespRec.OrderStatus = "Order Modified Successfully"
+																	lRespRec.Status = common.SuccessCode
+																} else if lReqRec.ActionType == "D" {
+																	lRespRec.OrderStatus = "Order Deleted Successfully"
+																	lRespRec.Status = common.SuccessCode
+																}
+															}
+														} else {
+															lRespRec.Status = common.ErrorCode
+															lRespRec.ErrMsg = "Immediate order cannot be processed"
+															fmt.Fprintf(w, helpers.GetErrorString("PNPO11", "Immediate order cannot be processed"))
+															return
+														}
+													}
+												}
+											} else {
+												lRespRec.Status = common.ErrorCode
+												lRespRec.ErrMsg = "Your request cannot be processed. Please accept the policy before submitting one."
+												log.Println("Your request cannot be processed. Please accept the policy before submitting one.")
+											}
+
+										} else if lTodayAvailable == "False" {
+											lRespRec.Status = common.ErrorCode
+											lRespRec.ErrMsg = "Bond Closed,No More Orders are Acceptable"
+											log.Println("Bond Closed,No More Orders are Acceptable")
+										} else {
+											lRespRec.Status = common.ErrorCode
+											lRespRec.ErrMsg = lErrMsg
+											log.Println(lErrMsg)
+										}
+
 									}
 								}
-
-							} else {
-								lRespRec.Status = common.ErrorCode
-								lRespRec.ErrMsg = "Timing Closed for NCB"
-								log.Println("Timing Closed for NCB")
 							}
+
+						} else {
+							lRespRec.Status = common.ErrorCode
+							lRespRec.ErrMsg = "Not eligible for placing NCB order"
+							log.Println("Not eligible for placing NCB order")
 						}
+
 					}
+					// }
+
 				}
 			}
 		}
+
 		lData, lErr8 := json.Marshal(lRespRec)
 		if lErr8 != nil {
 			log.Println("PNPO8", lErr8)
@@ -222,7 +304,7 @@ func NcbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 		} else {
 			fmt.Fprintf(w, string(lData))
 		}
-		log.Println("PlaceOrder (-)", r.Method)
+
 	}
 
 	log.Println("NcbPlaceOrder(-)", r.Method)
@@ -232,29 +314,29 @@ func NcbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 //Req Update
 //-----------------------------------------------------------------------------
 
-func LocalUpdate(pReqRec NcbReqStruct, pExchangeReq nsencb.NcbAddReqStruct, pClientId string, pExchange string, r *http.Request, pBrokerId int) error {
+func LocalUpdate(pReqRec NcbReqStruct, pExchangeReq nsencb.NcbAddReqStruct, pClientId string, pExchange string, pBrokerId int, pSource string, pEmailId string) error {
 	log.Println("LocalUpdate (+)")
 
-	lErr1 := NcbInsertBidTrack(pExchangeReq, pClientId, pExchange)
+	lErr1 := NcbInsertBidTrack(pReqRec, pExchangeReq, pClientId, pExchange, pBrokerId, pSource)
 	if lErr1 != nil {
 		log.Println("NCBPO01", lErr1)
 		return lErr1
 	} else {
-		lClientMailId, lErr2 := clientDetail.GetClientEmailId(pClientId)
-		if lErr2 != nil {
-			log.Println("NCBPO02", lErr2.Error())
-			return lErr2
+		// lClientDetails, lErr2 := clientDetail.GetClientEmailId(pClientId)
+		// if lErr2 != nil {
+		// 	log.Println("NCBPO02", lErr2.Error())
+		// 	return lErr2
+		// } else {
+		lErr3 := NcbInsertHeader(pReqRec, pExchangeReq, pClientId, pExchange, pEmailId, pBrokerId, pSource)
+		if lErr3 != nil {
+
+			log.Println("NCBPO03", lErr3.Error())
+			return lErr3
 		} else {
-			lErr3 := NcbInsertHeader(pReqRec, pExchangeReq, pClientId, pExchange, lClientMailId, pBrokerId)
-			if lErr3 != nil {
-
-				log.Println("NCBPO03", lErr3.Error())
-				return lErr3
-			} else {
-				log.Println("Updated Successfully in DB")
-			}
-
+			log.Println("Updated Successfully in DB")
 		}
+
+		// }
 	}
 
 	log.Println("LocalUpdate (-)")
@@ -297,26 +379,26 @@ Response:
 Author: KAVYADHARSHANI
 Date: 12OCT2023
 */
-func ConstructNCBReqStruct(pReqRec NcbReqStruct, pClientId string) (nsencb.NcbAddReqStruct, error) {
+func ConstructNCBReqStruct(pReqRec NcbReqStruct, pClientId string) (nsencb.NcbAddReqStruct, string, error) {
 	log.Println("ConstructNCBReqStruct(+)")
 
-	// create an instance of lReqRec type bsesgb.SgbReqStruct.
+	// create an instance of lReqRec type bseNcb.NcbReqStruct.
 	var lReqRec nsencb.NcbAddReqStruct
-	// var orderNo int
+
+	//emailId of The client
+	var lEmailId string
 
 	// call the getDpId method to get the lDpId and lClientName
-	lDpId, lClientName, lErr := getDpId(pClientId)
+	lClientDetails, lErr := clientDetail.GetClientEmailId(pClientId)
 	if lErr != nil {
 		log.Println("NPCNRS01", lErr)
-		return lReqRec, lErr
+		return lReqRec, lEmailId, lErr
+	} else {
+		lEmailId = lClientDetails.EmailId
+		lReqRec.Pan = lClientDetails.Pan_no
+		lReqRec.ClientBenId = lClientDetails.Client_dp_code
 	}
-	log.Println("lClientName", lClientName)
-	// call the getPanNO method to get the lPanNo
-	lPan, lErr := getPan(pClientId)
-	if lErr != nil {
-		log.Println("NPCNRS02", lErr)
-		return lReqRec, lErr
-	}
+	log.Println("lClientName", lClientDetails)
 
 	// call the getApplication method to get the lAppNo
 	lAppNo, lRefno, lOrderNo, lErr := getNcbApplicationNo(pReqRec, pClientId)
@@ -324,7 +406,7 @@ func ConstructNCBReqStruct(pReqRec NcbReqStruct, pClientId string) (nsencb.NcbAd
 	log.Println("pReqRec.Symbol", pReqRec.Symbol)
 	if lErr != nil {
 		log.Println("NPCNRS03", lErr)
-		return lReqRec, lErr
+		return lReqRec, lEmailId, lErr
 	} else {
 		log.Println("ApplicationNo", lAppNo, lOrderNo)
 		// If lAppNo is nil,generate new application no or else pass the lAppNo
@@ -333,169 +415,48 @@ func ConstructNCBReqStruct(pReqRec NcbReqStruct, pClientId string) (nsencb.NcbAd
 			lPresentTime := lTime.Format("150405")
 			lReqRec.ApplicationNumber = pClientId + lPresentTime
 
-			log.Println("lReqRec.ApplicationNumber", lReqRec.ApplicationNumber)
+			//referenceNumber
+			lByte := make([]byte, 8)
+			rand.Read(lByte)
+			lReqRec.ClientRefNumber = fmt.Sprintf("%x", lByte)
 
-			if lOrderNo == 0 {
-				var lTrimmedString string
-				// lTime := time.Now()
-				lUnixTime := lTime.Unix()
-				lUnixTimeString := fmt.Sprintf("%d", lUnixTime)
-				if len(pClientId) >= 5 {
-					lTrimmedString = pClientId[len(pClientId)-5:]
-				}
-				// lReqRec.OrderNumber = lUnixTimeString + lTrimmedString
-				orderNumberStr := lUnixTimeString + lTrimmedString
-				orderNumber, err := strconv.Atoi(orderNumberStr)
-				if err != nil {
-					log.Println("error", err)
-				}
-				lReqRec.OrderNumber = orderNumber
-				log.Println("lReqRec.OrderNumber1", lReqRec.OrderNumber)
-
-			} else {
-
-				lReqRec.OrderNumber = lOrderNo
-				log.Println("lReqRec.OrderNumber1", lReqRec.OrderNumber)
-			}
 		} else {
 			lReqRec.ApplicationNumber = lAppNo
+			lReqRec.ClientRefNumber = lRefno
 		}
 
-		log.Println("lReqRec.ApplicationNumber1111", lReqRec.ApplicationNumber)
+		if lOrderNo == 0 {
+			var lTrimmedString string
+			lTime := time.Now()
+			lUnixTime := lTime.Unix()
+			lUnixTimeString := fmt.Sprintf("%d", lUnixTime)
+			if len(pClientId) >= 5 {
+				lTrimmedString = pClientId[len(pClientId)-5:]
+			}
+			// lReqRec.OrderNumber = lUnixTimeString + lTrimmedString
+			orderNumberStr := lUnixTimeString + lTrimmedString
+			orderNumber, err := strconv.Atoi(orderNumberStr)
+			if err != nil {
+				log.Println("error", err)
+			}
+			lReqRec.OrderNumber = orderNumber
+
+		} else {
+			lReqRec.OrderNumber = lOrderNo
+		}
 
 	}
 
 	lReqRec.Symbol = pReqRec.Symbol
-	log.Println("pReqRec.Symbol", pReqRec.Symbol)
 	lReqRec.InvestmentValue = pReqRec.Unit
-	// lReqRec.ApplicationNumber = lAppno
-	lReqRec.Price = pReqRec.Amount
-	lReqRec.Pan = lPan
+	lReqRec.Price = float64(pReqRec.Price)
 	lReqRec.Depository = "CDSL"
 	lReqRec.DpId = ""
 	lReqRec.PhysicalDematFlag = "D"
-	lReqRec.ClientBenId = lDpId
-	lReqRec.ClientRefNumber = lRefno
-	lReqRec.ActivityType = pReqRec.ActionCode
-	log.Println("pReqRec.ActionCode", pReqRec.ActionCode)
-	log.Println("lReqRec.ActivityType", lReqRec.ActivityType)
+	lReqRec.ActivityType = pReqRec.ActionType
 
 	log.Println("ConstructNCBReqStruct(-)")
-	return lReqRec, nil
-}
-
-/*
-Pupose:This method is used to get the client BenId and ClientName for order input.
-Parameters:
-
-	PClientId
-
-Response:
-
-	==========
-	*On Sucess
-	==========
-	123456789012,Lakshmanan Ashok Kumar,nil
-
-	==========
-	*On Error
-	==========
-	"","",error
-
-Author:KAVYADHARSHANI M
-Date: 12OCT2023
-*/
-
-func getDpId(lClientId string) (string, string, error) {
-	log.Println("getDpId (+)")
-
-	// this variables is used to get DpId and ClientName from the database.
-	var lDpId string
-	var lClientName string
-
-	// To Establish A database connection,call LocalDbConnect Method
-	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.ClientDB)
-	if lErr1 != nil {
-		log.Println("NGDI01", lErr1)
-		return lDpId, lClientName, lErr1
-	} else {
-		defer lDb.Close()
-		lCoreString := `select  idm.CLIENT_DP_CODE, idm.CLIENT_DP_NAME
-						from   TECHEXCELPROD.CAPSFO.DBO.IO_DP_MASTER idm
-						where idm.CLIENT_ID = ?
-						and DEFAULT_ACC = 'Y'
-						and DEPOSITORY = 'CDSL' `
-		lRows, lErr2 := lDb.Query(lCoreString, lClientId)
-		if lErr2 != nil {
-			log.Println("NGDI02", lErr2)
-			return lDpId, lClientName, lErr2
-		} else {
-			for lRows.Next() {
-				lErr3 := lRows.Scan(&lDpId, &lClientName)
-				if lErr3 != nil {
-					log.Println("NGDI03", lErr3)
-					return lDpId, lClientName, lErr3
-				}
-			}
-		}
-	}
-	log.Println("getDpId (-)")
-	return lDpId, lClientName, nil
-}
-
-/*
-Pupose:This method is used to get the pan number for order input.
-Parameters:
-
-	PClientId
-
-Response:
-
-	==========
-	*On Sucess
-	==========
-	AGMPA45767,nil
-
-	==========
-	*On Error
-	==========
-	"",error
-
-Author:KAVYA DHARSHANI
-Date: 12OCT2023
-*/
-func getPan(pClientId string) (string, error) {
-	log.Println("getPan(+)")
-
-	// this variables is used to get Pan number of the client from the database.
-	var lPanNo string
-
-	// To Establish A database connection,call LocalDbConnect Method
-	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.ClientDB)
-	if lErr1 != nil {
-		log.Println("NGP01", lErr1)
-		return lPanNo, lErr1
-	} else {
-		defer lDb.Close()
-		lCoreString := `select pan_no
-						from TECHEXCELPROD.CAPSFO.DBO.client_details
-						where client_Id = ? `
-		lRows, lErr2 := lDb.Query(lCoreString, pClientId)
-		if lErr2 != nil {
-			log.Println("NGP02", lErr2)
-			return lPanNo, lErr2
-		} else {
-			for lRows.Next() {
-				lErr3 := lRows.Scan(&lPanNo)
-				if lErr3 != nil {
-					log.Println("NGP03", lErr3)
-					return lPanNo, lErr3
-				}
-			}
-		}
-	}
-	log.Println("getPan(-)")
-	return lPanNo, nil
+	return lReqRec, lEmailId, nil
 }
 
 /*
@@ -523,8 +484,6 @@ func getNcbApplicationNo(pReqRec NcbReqStruct, pClientId string) (string, string
 	log.Println("getNcbApplicationNo(+)")
 
 	var lAppNo, lRefNo string
-	// var lReqvalue NcbOrderStruct
-	// var lReqsym nsencb.NcbAddReqStruct
 	var lOrderNo int
 
 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
@@ -534,22 +493,19 @@ func getNcbApplicationNo(pReqRec NcbReqStruct, pClientId string) (string, string
 	} else {
 		defer lDb.Close()
 		log.Println("trying to get application no", lAppNo, lRefNo, pReqRec.OrderNo, lErr1)
-		lCoreString := `SELECT
-                               (CASE WHEN count(1) > 0 THEN d.OrderNo ELSE 0 END) orderno,
-                               (CASE WHEN count(1) > 0 THEN h.applicationNo ELSE 'nil' END) AppNo,
-                               nvl(h.ClientRefNumber, 'nil') refno,nvl(n.Symbol,'') symbol
-                         FROM a_ncb_orderheader h, a_ncb_master n, a_ncb_orderdetails d
-                         WHERE n.id = h.MasterId
-                         AND h.Id = d.HeaderId
-                         AND h.ClientId = ?
-						 AND h.Symbol  = ?
-						 and d.OrderNo = ?
-						 and h.applicationNo  =?`
+		lCoreString := `select (CASE WHEN count(1) > 0 THEN d.ReqOrderNo ELSE 0 END) orderno,
+		                       (CASE WHEN count(1) > 0 THEN h.ReqapplicationNo ELSE 'nil' END) AppNo,
+		                       (CASE WHEN count(1) > 0 THEN h.ClientRefNumber ELSE 'nil' END) Refno,nvl(n.Symbol,'') symbol
+                        FROM a_ncb_orderheader h, a_ncb_master n, a_ncb_orderdetails d
+                        WHERE n.id = h.MasterId
+                        AND h.Id = d.HeaderId
+                        AND h.ClientId = ?
+                        AND h.Symbol  = ?
+                        and d.ReqOrderNo  = ?
+                        and h.ReqapplicationNo  = ?
+						and n.id = ? `
 
-		//  AND h.ClientRefNumber = ?lRefNo, lOrderNo
-		//  AND d.OrderNo = ?
-		log.Println("where adat-------------------", pClientId, pReqRec.Symbol, pReqRec.OrderNo)
-		lRows, lErr2 := lDb.Query(lCoreString, pClientId, pReqRec.Symbol, pReqRec.OrderNo, pReqRec.ApplicationNo)
+		lRows, lErr2 := lDb.Query(lCoreString, pClientId, pReqRec.Symbol, pReqRec.OrderNo, pReqRec.ApplicationNo, pReqRec.MasterId)
 		log.Println("lReqvalue", pReqRec.Symbol)
 		if lErr2 != nil {
 			log.Println("NGAN02", lErr2)
@@ -565,7 +521,6 @@ func getNcbApplicationNo(pReqRec NcbReqStruct, pClientId string) (string, string
 			}
 		}
 	}
-	log.Println("appno------------------------", lAppNo)
 	log.Println("getNcbApplicationNo(-)")
 	return lAppNo, lRefNo, lOrderNo, nil
 }
@@ -591,7 +546,7 @@ Response:
 Author:KAVYA DHARSHANI
 Date: 14OCT2023
 */
-func NcbInsertBidTrack(pReqRec nsencb.NcbAddReqStruct, pClientId string, pExchange string) error {
+func NcbInsertBidTrack(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pClientId string, pExchange string, pBrokerId int, pSource string) error {
 
 	log.Println("NcbInsertBidTrack(+)")
 
@@ -602,16 +557,21 @@ func NcbInsertBidTrack(pReqRec nsencb.NcbAddReqStruct, pClientId string, pExchan
 	} else {
 		defer lDb.Close()
 
-		lSqlString := `insert into a_Ncbbidtracking_table(brokerId,applicationNo,orderNo,activityType,price,clientId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,Exchange)
-							values(?,?,?,?,?,?,?,now(),?,now(),?)`
-		_, lErr2 := lDb.Exec(lSqlString, 4, pReqRec.ApplicationNumber, pReqRec.OrderNumber, pReqRec.ActivityType,
-			pReqRec.Price, pClientId, pClientId, pClientId, pExchange)
+		log.Println("pReqRec.ActivityType", pReqRec.ActivityType)
 
-		if lErr2 != nil {
-			log.Println("Error inserting into database (bidtrack)")
-			log.Println("NIBT02", lErr2)
-			return lErr2
+		if pReqRec.ActivityType == "M" || pReqRec.ActivityType == "N" || pReqRec.ActivityType == "D" {
+
+			lSqlString := `insert into a_Ncbbidtracking_table(brokerId,applicationNo,Series,orderNo,activityType,Unit,price,Amount,clientId,source,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,Exchange)
+								values(?,?,?,?,?,?,?,?,?,?,?,now(),?,now(),?)`
+			_, lErr2 := lDb.Exec(lSqlString, pBrokerId, pReqRec.ApplicationNumber, pReqResp.Series, pReqRec.OrderNumber, pReqRec.ActivityType, pReqRec.InvestmentValue, pReqResp.Price, pReqRec.Price, pClientId, pSource, pClientId, pClientId, pExchange)
+
+			if lErr2 != nil {
+				log.Println("Error inserting into database (bidtrack)")
+				log.Println("NIBT02", lErr2)
+				return lErr2
+			}
 		}
+
 	}
 
 	log.Println("NcbInsertBidTrack(-)")
@@ -663,7 +623,7 @@ Response:
 Author:KAVYA DHARSHANI M
 Date: 14OCT2023
 */
-func NcbInsertHeader(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pClientId string, pExchange string, pMailId string, pBrokerId int) error {
+func NcbInsertHeader(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pClientId string, pExchange string, pMailId string, pBrokerId int, pSource string) error {
 	log.Println("InsertHeader (+)")
 
 	//get the application no id in table
@@ -694,19 +654,20 @@ func NcbInsertHeader(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pCli
 
 			if lHeadId == 0 {
 
-				lSqlString1 := `insert into a_ncb_orderheader (brokerId,MasterId, Symbol,Investmentunit,applicationNo,pan, PhysicalDematFlag,depository ,dpId, ClientBenId, clientRefNumber, clientId, CreatedBy,CreatedDate,cancelFlag,Exchange,status,ClientEmail,
-					UpdatedBy,UpdatedDate )
-							values (?,?,?,?,?,?,?,?,?,?,?,?,?,now(),?,?,?,?,?,now())`
-				lInsertedHeaderId, lErr3 := lDb.Exec(lSqlString1, pBrokerId, lHeaderId, pReqRec.Symbol, pReqRec.InvestmentValue,
-					pReqRec.ApplicationNumber, pReqRec.Pan, pReqRec.PhysicalDematFlag, pReqRec.Depository, pReqRec.DpId,
-					pReqRec.ClientBenId, pReqRec.ClientRefNumber, pClientId, pClientId, lCancelFlag, pExchange, common.SUCCESS, pMailId, pClientId)
+				processFlag := "N"
+				Schstatus := "N"
+
+				lSqlString1 := `insert into a_ncb_orderheader (brokerId,MasterId, Symbol,Series,ReqInvestmentunit,ReqapplicationNo,RespapplicationNo,pan,PhysicalDematFlag,depository ,dpId, ClientBenId, clientRefNumber, clientId, CreatedBy,CreatedDate,cancelFlag,Exchange,status,ClientEmail,source, ProcessFlag,ScheduleStatus, UpdatedBy,UpdatedDate, SItext,SIvalue )
+							values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now(),?,?,?,?,?,?,?,?,now(),?,?)`
+				lInsertedHeaderId, lErr3 := lDb.Exec(lSqlString1, pBrokerId, lHeaderId, pReqRec.Symbol, pReqResp.Series, pReqRec.InvestmentValue,
+					pReqRec.ApplicationNumber, pReqRec.ApplicationNumber, pReqRec.Pan, pReqRec.PhysicalDematFlag, pReqRec.Depository, pReqRec.DpId,
+					pReqRec.ClientBenId, pReqRec.ClientRefNumber, pClientId, pClientId, lCancelFlag, pExchange, common.SUCCESS, pMailId, pSource, processFlag, Schstatus, pClientId, pReqResp.SIText, pReqResp.SIValue)
 				if lErr3 != nil {
 					log.Println("NIH03", lErr3)
 					return lErr3
 				} else {
 					lReturnId, _ := lInsertedHeaderId.LastInsertId()
 					lHeaderId = int(lReturnId)
-					log.Println("lHeaderId", lHeaderId)
 
 					lErr4 := InsertDetails(pReqRec, pReqResp, lHeaderId, pClientId, pExchange)
 					if lErr4 != nil {
@@ -718,16 +679,15 @@ func NcbInsertHeader(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pCli
 				}
 
 			} else if pReqRec.ActivityType == "M" {
-				log.Println("else in header1", pReqRec.ActivityType, pReqResp.OldUnit, pReqResp.Unit)
 				lSqlString3 := `update a_ncb_orderheader h
-				set h.Symbol = ?,h.Investmentunit=?,h.pan  = ?,h.PhysicalDematFlag=?, h.depository  =?, h.dpId =? , h.clientBenId  =?, h.clientRefNumber =? ,h.UpdatedBy = ?,h.UpdatedDate = now(),h.cancelFlag= ?,h.status = ?,h.clientId=?
-			  where h.applicationNo = ?
-				  and h.clientId = ?
-				  and h.Id = ?
-				  and h.Exchange = ?
-				  and h.brokerId = ?`
-				_, lErr7 := lDb.Exec(lSqlString3, pReqRec.Symbol, pReqResp.OldUnit, pReqRec.Pan, pReqRec.PhysicalDematFlag, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenId, pReqRec.ClientRefNumber,
-					pClientId, lCancelFlag, common.SUCCESS, pClientId, pReqRec.ApplicationNumber, pClientId, lHeaderId, pExchange, pBrokerId)
+				                set h.Symbol = ?,h.Series=?,h.ReqInvestmentunit =?,h.pan  = ?,h.PhysicalDematFlag=?, h.depository  =?, h.dpId =?, h.clientBenId  =?, h.clientRefNumber =? ,h.UpdatedBy = ?,h.UpdatedDate = now(),h.cancelFlag= ?,h.status = ?,h.clientId=?, h.SItext = ?,h.SIvalue = ?
+				                where h.clientId = ?
+				                and h.Id = ?
+				                and h.Exchange = ?
+				                and h.brokerId = ?
+								and h.ReqapplicationNo = ?`
+				_, lErr7 := lDb.Exec(lSqlString3, pReqRec.Symbol, pReqResp.Series, pReqResp.Unit, pReqRec.Pan, pReqRec.PhysicalDematFlag, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenId, pReqRec.ClientRefNumber,
+					pClientId, lCancelFlag, common.SUCCESS, pClientId, pReqResp.SIText, pReqResp.SIValue, pClientId, lHeaderId, pExchange, pBrokerId, pReqRec.ApplicationNumber)
 				if lErr7 != nil {
 					log.Println("NIH07", lErr7)
 					return lErr7
@@ -741,28 +701,28 @@ func NcbInsertHeader(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pCli
 						log.Println("header updated successfully")
 					}
 				}
-			} else {
-				log.Println("else in header2", pReqRec.ActivityType, pReqResp.OldUnit, pReqResp.Unit)
+			} else if pReqRec.ActivityType == "D" {
 				lCancelFlag = "Y"
 				lSqlString2 := `update a_ncb_orderheader h
-		                          set h.Symbol = ?,h.Investmentunit=?,h.pan  = ?,h.PhysicalDematFlag=?, h.depository  =?, h.dpId =? , h.clientBenId  =?, h.clientRefNumber =? ,h.UpdatedBy = ?,h.UpdatedDate = now(),h.cancelFlag= ?,h.status = ?
-                                where h.applicationNo = ?
-									and h.clientId = ?
-									and h.Id = ?
-									and h.Exchange = ?
-									and h.brokerId = ?`
-				_, lErr5 := lDb.Exec(lSqlString2, pReqRec.Symbol, pReqResp.OldUnit, pReqRec.Pan, pReqRec.PhysicalDematFlag, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenId, pReqRec.ClientRefNumber,
-					pClientId, "Y", common.SUCCESS, pReqRec.ApplicationNumber, pClientId, lHeaderId, pExchange, pBrokerId)
+				                set h.Symbol = ?,h.Series=?,h.ReqInvestmentunit =?,h.pan  = ?,h.PhysicalDematFlag=?, h.depository  =?, h.dpId =?, h.clientBenId  =?, h.clientRefNumber =? ,h.UpdatedBy = ?,h.UpdatedDate = now(),h.cancelFlag= ?,h.status = ?,h.clientId=?,h.SItext = ?,h.SIvalue = ?
+				                where h.clientId = ?
+				                and h.Id = ?
+				                and h.Exchange = ?
+				                and h.brokerId = ?
+								and h.ReqapplicationNo = ?`
+				_, lErr5 := lDb.Exec(lSqlString2, pReqRec.Symbol, pReqResp.Series, pReqResp.Unit, pReqRec.Pan, pReqRec.PhysicalDematFlag, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenId, pReqRec.ClientRefNumber,
+					pClientId, "Y", common.SUCCESS, pClientId, pReqResp.SIText, pReqResp.SIValue, pClientId, lHeaderId, pExchange, pBrokerId,
+					pReqRec.ApplicationNumber)
 				if lErr5 != nil {
 					log.Println("NIH05", lErr5)
 					return lErr5
 				} else {
-					log.Println("lCancelFlag", lCancelFlag)
 					lErr6 := InsertDetails(pReqRec, pReqResp, lHeaderId, pClientId, pExchange)
 					if lErr6 != nil {
 						log.Println("NIH06", lErr6)
 						return lErr6
 					} else {
+						log.Println("lCancelFlag", lCancelFlag, pReqRec.ActivityType)
 						log.Println("header cancel updated successfully")
 					}
 
@@ -811,13 +771,13 @@ func getAppNoId(pReqResp NcbReqStruct, pReqRec nsencb.NcbAddReqStruct, pMasterId
 	} else {
 		defer lDb.Close()
 
-		if pReqRec.ApplicationNumber == pReqRec.ApplicationNumber {
+		if pReqRec.ApplicationNumber == pReqResp.ApplicationNo {
 			lCoreString := `select (case when count(1) > 0 then h.Id else 0 end) AppNo
-		                from a_ncb_orderheader h
-		               where h.applicationNo = ?
-		               and h.clientId = ?	 
-		                and h.MasterId = ?`
-			lRows, lErr2 := lDb.Query(lCoreString, pReqResp.ApplicationNo, pClientId, pMasterId)
+			                from a_ncb_orderheader h
+		                    where h.clientId = ? 
+			                and h.MasterId = ?
+			                and h.ReqapplicationNo =? `
+			lRows, lErr2 := lDb.Query(lCoreString, pClientId, pMasterId, pReqResp.ApplicationNo)
 			if lErr2 != nil {
 				log.Println("NGAI02", lErr2)
 				return lHeaderId, lErr2
@@ -869,46 +829,45 @@ func InsertDetails(pReqRec nsencb.NcbAddReqStruct, pReqResp NcbReqStruct, pHeade
 	} else {
 		defer lDb.Close()
 
-		log.Println("pReqRec", pReqRec)
-
 		if pReqRec.ActivityType == "N" {
-			lSqlString1 := `insert into a_ncb_orderdetails(headerId,activityType,clientReferenceNo,OrderNo,symbol,price,Unit,status,exchange ,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
-							values (?,?,?,?,?,?,?,?,?,?,now(),?,now())`
+			lSqlString1 := `insert into a_ncb_orderdetails(headerId,activityType,clientReferenceNo,ReqOrderNo,RespOrderNo,symbol,ReqAmount,Reqprice,ReqUnit,status,exchange ,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate)
+							values (?,?,?,?,?,?,?,?,?,?,?,?,now(),?,now())`
 
-			_, lErr3 := lDb.Exec(lSqlString1, pHeaderId, pReqRec.ActivityType, pReqRec.ClientRefNumber, pReqRec.OrderNumber, pReqRec.Symbol, pReqRec.Price, pReqRec.InvestmentValue, common.SUCCESS, pExchange, pClientId, pClientId)
+			_, lErr3 := lDb.Exec(lSqlString1, pHeaderId, pReqRec.ActivityType, pReqRec.ClientRefNumber, pReqRec.OrderNumber, pReqRec.OrderNumber, pReqRec.Symbol, pReqRec.Price, pReqResp.Price, pReqRec.InvestmentValue, common.SUCCESS, pExchange, pClientId, pClientId)
 			if lErr3 != nil {
 				log.Println("PID03", lErr3)
 				return lErr3
 			} else {
+				log.Println("Price", pReqRec.Price, pReqResp.Price)
 				log.Println("Details Inserted Successfully")
 
 			}
 		} else if pReqRec.ActivityType == "M" {
 			lSqlString2 := `update a_ncb_orderdetails d
-			set d.activityType = ?,d.clientReferenceNo =?,d.price = ?,d.Unit=?,d.UpdatedBy = ?,d.UpdatedDate = now()
+			set d.activityType = ?,d.clientReferenceNo =?,d.ReqAmount=?,d.Reqprice = ?,d.ReqUnit =?,d.UpdatedBy = ?,d.UpdatedDate = now()
 			where d.headerId = ?
 			and d.exchange = ?
 			and d.symbol =?`
-			_, lErr4 := lDb.Exec(lSqlString2, pReqRec.ActivityType, pReqRec.ClientRefNumber, pReqRec.Price, pReqResp.OldUnit, pClientId, pHeaderId, pExchange, pReqRec.Symbol)
+			_, lErr4 := lDb.Exec(lSqlString2, pReqRec.ActivityType, pReqRec.ClientRefNumber, pReqRec.Price, pReqResp.Price, pReqResp.Unit, pClientId, pHeaderId, pExchange, pReqRec.Symbol)
 			if lErr4 != nil {
 				log.Println("NID04", lErr4)
 				return lErr4
 			} else {
-				log.Println("Details Inserted Successfully")
+				log.Println("Details Modified Successfully")
 
 			}
 		} else if pReqRec.ActivityType == "D" {
 			lSqlString3 := `update a_ncb_orderdetails d
-			set d.activityType = ?,d.clientReferenceNo =?,d.price = ?,d.Unit=?,d.UpdatedBy = ?,d.UpdatedDate = now()
+			set d.activityType = ?,d.clientReferenceNo =?,d.ReqAmount=?,d.Reqprice = ?,d.ReqUnit =?,d.UpdatedBy = ?,d.UpdatedDate = now()
 			where d.headerId = ?
 			and d.exchange = ?
 			and d.symbol =?`
-			_, lErr5 := lDb.Exec(lSqlString3, pReqRec.ActivityType, pReqRec.ClientRefNumber, pReqRec.Price, pReqResp.OldUnit, pClientId, pHeaderId, pExchange, pReqRec.Symbol)
+			_, lErr5 := lDb.Exec(lSqlString3, pReqRec.ActivityType, pReqRec.ClientRefNumber, pReqRec.Price, pReqResp.Price, pReqResp.Unit, pClientId, pHeaderId, pExchange, pReqRec.Symbol)
 			if lErr5 != nil {
 				log.Println("NID05", lErr5)
 				return lErr5
 			} else {
-				log.Println("Details Inserted Successfully")
+				log.Println("Details Deleted Successfully")
 
 			}
 		}
@@ -918,4 +877,48 @@ func InsertDetails(pReqRec nsencb.NcbAddReqStruct, pReqResp NcbReqStruct, pHeade
 	log.Println("InsertDetails(-)")
 	return nil
 
+}
+
+// this method is used to Accept the order Based on Time
+func NcbTimeToAcceptOrder(pMasterId int) (string, error) {
+	log.Println("NcbTimeToAcceptOrder (+)")
+	var lorderAcceptFlag string
+
+	lConfigFile := common.ReadTomlConfig("toml/NcbConfig.toml")
+	lCloseTime := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["NCB_CloseTime"])
+
+	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
+	if lErr1 != nil {
+		log.Println("NTTAO01", lErr1)
+		return lorderAcceptFlag, lErr1
+	} else {
+		defer lDb.Close()
+
+		lCoreString2 := `select (case when( BiddingEndDate  = Date(now()) and Time(now()) > '` + lCloseTime + `' )  then 'Y' else 'N'end ) as LastDay
+		                 from a_ncb_master
+		                 where BiddingStartDate <= curdate()
+		                 and BiddingEndDate >= curdate() 
+		                 and id = ?`
+
+		lRows1, lErr2 := lDb.Query(lCoreString2, pMasterId)
+		if lErr2 != nil {
+			log.Println("NTTAO02", lErr2)
+			return lorderAcceptFlag, lErr2
+		} else {
+			//This for loop is used to collect the records from the database and store them in structure
+			for lRows1.Next() {
+				lErr3 := lRows1.Scan(&lorderAcceptFlag)
+				if lErr3 != nil {
+					log.Println("NTTAO03", lErr3)
+					return lorderAcceptFlag, lErr3
+				} else {
+					// common.ABHIBrokerId = lBrokerId
+					log.Println("lorderAcceptFlag  := ", lorderAcceptFlag)
+				}
+			}
+
+		}
+	}
+	log.Println("NcbTimeToAcceptOrder (-)")
+	return lorderAcceptFlag, nil
 }

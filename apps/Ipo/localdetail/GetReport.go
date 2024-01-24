@@ -3,6 +3,7 @@ package localdetail
 import (
 	"encoding/json"
 	"fcs23pkg/apps/Ipo/brokers"
+	"fcs23pkg/apps/SGB/localdetails"
 	"fcs23pkg/apps/validation/apiaccess"
 	"fcs23pkg/common"
 	"fcs23pkg/ftdb"
@@ -14,13 +15,6 @@ import (
 )
 
 // This  Structure is used to get Request details
-type ReportReqStruct struct {
-	Module   string `json:"module"`
-	ClientId string `json:"clientId"`
-	FromDate string `json:"fromDate"`
-	ToDate   string `json:"toDate"`
-	Symbol   string `json:"symbol"`
-}
 
 // This Structure is used to get Report details
 type ReportRespStruct struct {
@@ -38,9 +32,10 @@ type ReportRespStruct struct {
 // Response Sturcture for GetReport API
 type RespStruct struct {
 	IpoArr []ReportRespStruct `json:"ipoArr"`
-	SgbArr []ReportRespStruct `json:"sgbArr"`
-	Status string             `json:"status"`
-	ErrMsg string             `json:"errMsg"`
+	// SgbArr  []ReportRespStruct             `json:"sgbArr"`
+	SgbArr []localdetails.SgbOrderHistoryStruct `json:"sgbArr"`
+	Status string                               `json:"status"`
+	ErrMsg string                               `json:"errMsg"`
 }
 
 /*
@@ -105,7 +100,7 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 
 		// This variable is used to pass the request struct to the query
-		var lReportRec ReportReqStruct
+		var lReportRec localdetails.ReportReqStruct
 		// This variable helps to store the response and send it to front
 		var lRespRec RespStruct
 
@@ -234,38 +229,194 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetReportModule(pReportRec ReportReqStruct, pBrokerId int) ([]ReportRespStruct, []ReportRespStruct, error) {
+// ------ commented by kavya -------
+
+// func GetReportModule(pReportRec ReportReqStruct, pBrokerId int) ([]ReportRespStruct, []ReportRespStruct, error) {
+// 	log.Println("GetReportModule (+)")
+
+// 	var lIpo, lSgb ReportRespStruct
+// 	var lIpoArr, lSgbArr []ReportRespStruct
+
+// 	// to Establish A database conncetion, call the LocalDbconnect Method
+// 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
+// 	if lErr1 != nil {
+// 		log.Println("LGRM01", lErr1)
+// 		return lIpoArr, lSgbArr, lErr1
+// 	} else {
+// 		defer lDb.Close()
+
+// 		if pReportRec.Module == "Ipo" {
+
+// 			// lCoreString := `SELECT aioh.MasterId,aioh.Symbol,aioh.applicationNo,nvl(DATE_FORMAT(aioh.CreatedDate , '%d-%b-%Y'),'') applyDate,
+// 			// 				nvl(TIME_FORMAT(aioh.CreatedDate, '%h:%i:%s %p'),'') applytime,
+// 			// 				(case when aioh.cancelFlag = 'Y' then 'user cancelled' else nvl(aioh.status ,'') end) flag,aioh.clientId
+// 			// 				from a_ipo_order_header aioh
+// 			// 				where aioh.brokerId = ?
+// 			// 				and aioh.CreatedDate between concat (?, ' 00:00:00.000') and concat (?, ' 23:59:59.000')`
+
+// 			// if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
+// 			// 	ladditionalCon1 = `or aioh.Symbol  = '` + pReportRec.Symbol + `'`
+// 			// } else if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
+// 			// 	ladditionalCon1 = `or aioh.clientId = '` + pReportRec.ClientId + `'`
+// 			// } else if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
+// 			// 	ladditionalCon1 = `or (aioh.Symbol  = '` + pReportRec.Symbol + `' and aioh.clientId = '` + pReportRec.ClientId + `')`
+// 			// }
+
+// 			// velmurugan
+
+// 			var ladditionalCon1 string
+// 			if pReportRec.FromDate != "" && pReportRec.ToDate != "" {
+// 				ladditionalCon1 = `and aioh.CreatedDate between concat ('` + pReportRec.FromDate + ` 00:00:00.000') and concat ('` + pReportRec.ToDate + ` 23:59:59.000')`
+// 			}
+
+// 			if pReportRec.Symbol != "" {
+// 				ladditionalCon1 = ladditionalCon1 + `and aioh.Symbol  = '` + pReportRec.Symbol + `'`
+// 			}
+// 			if pReportRec.ClientId != "" {
+// 				ladditionalCon1 = ladditionalCon1 + ` and clientId = '` + pReportRec.ClientId + `'`
+// 			}
+
+// 			lCoreString := `SELECT aioh.MasterId,aioh.Symbol,aioh.applicationNo,nvl(DATE_FORMAT(aioh.CreatedDate , '%d-%b-%Y'),'') applyDate,
+// 							nvl(TIME_FORMAT(aioh.CreatedDate, '%h:%i:%s %p'),'') applytime,
+// 							(case when aioh.cancelFlag = 'Y' then 'user cancelled' else nvl(aioh.status ,'') end) flag,aioh.clientId,nvl(aioh.exchange,''),nvl(category,'')
+// 							from a_ipo_order_header aioh
+// 							where aioh.brokerId = ?
+// 							` + ladditionalCon1 + ``
+
+// 			lRows, lErr2 := lDb.Query(lCoreString, pBrokerId)
+// 			if lErr2 != nil {
+// 				log.Println("LGRM02", lErr2)
+// 				return lIpoArr, lSgbArr, lErr2
+// 			} else {
+// 				//Reading the Records
+// 				for lRows.Next() {
+// 					lErr3 := lRows.Scan(&lIpo.MasterId, &lIpo.Symbol, &lIpo.ApplicationNo, &lIpo.ApplyDate,
+// 						&lIpo.AppliedTime, &lIpo.Status, &lIpo.ClientId, &lIpo.Exchange, &lIpo.Category)
+// 					if lErr3 != nil {
+// 						log.Println("LGRM03", lErr3)
+// 						return lIpoArr, lSgbArr, lErr3
+// 					} else {
+// 						lIpoArr = append(lIpoArr, lIpo)
+// 					}
+// 				}
+// 			}
+// 		} else {
+// 			ladditionalCon1 := ""
+// 			// COMMENTED BY NITHISH BECAUSE THE ORDER NO COLUMN WAS INCORRECT
+// 			// lCoreString := `select oh.MasterId,oh.ScripId ,od.OrderNo,nvl(DATE_FORMAT(oh.CreatedDate , '%d-%b-%Y'),'') applyDate,nvl(TIME_FORMAT(oh.CreatedDate, '%h:%i:%s %p'),'') applytime,(case when oh.cancelFlag = 'Y' then 'user cancelled' else nvl(oh.status ,'') end) flag,
+// 			// NVL(oh.ClientId,'') ,nvl(oh.exchange,'')
+// 			// from a_sgb_orderheader oh JOIN
+// 			// a_sgb_orderdetails od ON oh.Id = od.HeaderId
+// 			// where oh.brokerId = ?
+// 			lCoreString := `select oh.MasterId,oh.ScripId ,od.ReqOrderNo ,nvl(DATE_FORMAT(oh.CreatedDate , '%d-%b-%Y'),'') applyDate,nvl(TIME_FORMAT(oh.CreatedDate, '%h:%i:%s %p'),'') applytime,(case when oh.cancelFlag = 'Y' then 'user cancelled' else nvl(oh.status ,'') end) flag,
+// 			NVL(oh.ClientId,'') ,nvl(oh.exchange,''),nvl(od.RespOrderNo,'')
+// 			from a_sgb_orderheader oh JOIN
+// 			a_sgb_orderdetails od ON oh.Id = od.HeaderId
+// 			where oh.brokerId = ?
+// 			`
+
+// 			// if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
+// 			// 	ladditionalCon1 = `or oh.ScripId  = '` + pReportRec.Symbol + `'`
+// 			// } else if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
+// 			// 	ladditionalCon1 = `or oh.clientId = '` + pReportRec.ClientId + `'`
+// 			// } else if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
+// 			// 	ladditionalCon1 = `or (oh.ScripId  = '` + pReportRec.Symbol + `' and oh.clientId = '` + pReportRec.ClientId + `')`
+// 			// }
+
+// 			if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
+// 				ladditionalCon1 = `and oh.ScripId  = '` + pReportRec.Symbol + `'`
+// 			}
+// 			if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
+// 				ladditionalCon1 = ladditionalCon1 + `and oh.clientId = '` + pReportRec.ClientId + `'`
+// 			}
+// 			if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
+// 				ladditionalCon1 = ladditionalCon1 + `and (oh.ScripId  = '` + pReportRec.Symbol + `' and oh.clientId = '` + pReportRec.ClientId + `')`
+// 			}
+// 			if pReportRec.FromDate != "" && pReportRec.ToDate != "" {
+// 				ladditionalCon1 = ladditionalCon1 + `and oh.CreatedDate between concat ('` + pReportRec.FromDate + ` 00:00:00.000') and concat ('` + pReportRec.ToDate + ` 23:59:59.000')`
+// 			}
+
+// 			lCoreString2 := lCoreString + ladditionalCon1
+// 			lRows, lErr4 := lDb.Query(lCoreString2, pBrokerId)
+// 			if lErr4 != nil {
+// 				log.Println("LGRM04", lErr4)
+// 				return lIpoArr, lSgbArr, lErr4
+// 			} else {
+// 				//Reading the Records
+// 				for lRows.Next() {
+// 					lErr5 := lRows.Scan(&lSgb.MasterId, &lSgb.Symbol, &lSgb.ApplicationNo, &lSgb.ApplyDate, &lSgb.AppliedTime, &lSgb.Status, &lSgb.ClientId, &lSgb.Exchange, &lSgb.ExchOrderNo)
+// 					if lErr5 != nil {
+// 						log.Println("LGRM05", lErr5)
+// 						return lIpoArr, lSgbArr, lErr5
+// 					} else {
+// 						lSgbArr = append(lSgbArr, lSgb)
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	log.Println("GetReportModule (-)")
+// 	return lIpoArr, lSgbArr, nil
+// }
+
+// if pReportRec.Symbol != "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.ScripId  = '` + pReportRec.Symbol + `'`
+// }
+// if pReportRec.ClientId != "" {
+// 	ladditionalCon1 = ladditionalCon1 + ` and h.ClientId= '` + pReportRec.ClientId + `'`
+// }
+
+// if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.ScripId  = '` + pReportRec.Symbol + `'`
+// }
+// if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.ClientId = '` + pReportRec.ClientId + `'`
+// }
+
+// if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and (h.ScripId  = '` + pReportRec.Symbol + `' and h.ClientId = '` + pReportRec.ClientId + `')`
+// }
+
+// if pReportRec.FromDate != "" && pReportRec.ToDate != "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.CreatedDate between concat ('` + pReportRec.FromDate + ` 00:00:00.000') and concat ('` + pReportRec.ToDate + ` 23:59:59.000')`
+// }
+// lCoreString2 := lCoreString + ladditionalCon1
+// lRows, lErr4 := lDb.Query(lCoreString2, pBrokerId)
+/// ====
+// if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.ScripId  = '` + pReportRec.Symbol + `'`
+// }
+// if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.ClientId = '` + pReportRec.ClientId + `'`
+// }
+// if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and (h.ScripId  = '` + pReportRec.Symbol + `' and h.ClientId = '` + pReportRec.ClientId + `')`
+// }
+// if pReportRec.FromDate != "" && pReportRec.ToDate != "" {
+// 	ladditionalCon1 = ladditionalCon1 + `and h.CreatedDate between concat ('` + pReportRec.FromDate + ` 00:00:00.000') and concat ('` + pReportRec.ToDate + ` 23:59:59.000')`
+// }
+
+func GetReportModule(pReportRec localdetails.ReportReqStruct, pBrokerId int) ([]ReportRespStruct, []localdetails.SgbOrderHistoryStruct, error) {
 	log.Println("GetReportModule (+)")
 
-	var lIpo, lSgb ReportRespStruct
-	var lIpoArr, lSgbArr []ReportRespStruct
+	var lIpo ReportRespStruct
+	var lIpoArr []ReportRespStruct
+	// var lSgbOrder localdetails.SgbOrderHistoryStruct
+	var lSgbResp localdetails.SgbOrderHistoryResp
+	var SgbArr2 []localdetails.SgbOrderHistoryStruct
+
+	// lConfigFile := common.ReadTomlConfig("toml/SgbConfig.toml")
+	// lCloseTime := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["SGB_CloseTime"])
 
 	// to Establish A database conncetion, call the LocalDbconnect Method
 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
 	if lErr1 != nil {
 		log.Println("LGRM01", lErr1)
-		return lIpoArr, lSgbArr, lErr1
+		return lIpoArr, SgbArr2, lErr1
 	} else {
 		defer lDb.Close()
 
 		if pReportRec.Module == "Ipo" {
-
-			// lCoreString := `SELECT aioh.MasterId,aioh.Symbol,aioh.applicationNo,nvl(DATE_FORMAT(aioh.CreatedDate , '%d-%b-%Y'),'') applyDate,
-			// 				nvl(TIME_FORMAT(aioh.CreatedDate, '%h:%i:%s %p'),'') applytime,
-			// 				(case when aioh.cancelFlag = 'Y' then 'user cancelled' else nvl(aioh.status ,'') end) flag,aioh.clientId
-			// 				from a_ipo_order_header aioh
-			// 				where aioh.brokerId = ?
-			// 				and aioh.CreatedDate between concat (?, ' 00:00:00.000') and concat (?, ' 23:59:59.000')`
-
-			// if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
-			// 	ladditionalCon1 = `or aioh.Symbol  = '` + pReportRec.Symbol + `'`
-			// } else if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
-			// 	ladditionalCon1 = `or aioh.clientId = '` + pReportRec.ClientId + `'`
-			// } else if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
-			// 	ladditionalCon1 = `or (aioh.Symbol  = '` + pReportRec.Symbol + `' and aioh.clientId = '` + pReportRec.ClientId + `')`
-			// }
-
-			// velmurugan
 
 			var ladditionalCon1 string
 			if pReportRec.FromDate != "" && pReportRec.ToDate != "" {
@@ -289,7 +440,7 @@ func GetReportModule(pReportRec ReportReqStruct, pBrokerId int) ([]ReportRespStr
 			lRows, lErr2 := lDb.Query(lCoreString, pBrokerId)
 			if lErr2 != nil {
 				log.Println("LGRM02", lErr2)
-				return lIpoArr, lSgbArr, lErr2
+				return lIpoArr, SgbArr2, lErr2
 			} else {
 				//Reading the Records
 				for lRows.Next() {
@@ -297,74 +448,103 @@ func GetReportModule(pReportRec ReportReqStruct, pBrokerId int) ([]ReportRespStr
 						&lIpo.AppliedTime, &lIpo.Status, &lIpo.ClientId, &lIpo.Exchange, &lIpo.Category)
 					if lErr3 != nil {
 						log.Println("LGRM03", lErr3)
-						return lIpoArr, lSgbArr, lErr3
+						return lIpoArr, SgbArr2, lErr3
 					} else {
 						lIpoArr = append(lIpoArr, lIpo)
 					}
 				}
 			}
 		} else {
-			ladditionalCon1 := ""
-			// COMMENTED BY NITHISH BECAUSE THE ORDER NO COLUMN WAS INCORRECT
-			// lCoreString := `select oh.MasterId,oh.ScripId ,od.OrderNo,nvl(DATE_FORMAT(oh.CreatedDate , '%d-%b-%Y'),'') applyDate,nvl(TIME_FORMAT(oh.CreatedDate, '%h:%i:%s %p'),'') applytime,(case when oh.cancelFlag = 'Y' then 'user cancelled' else nvl(oh.status ,'') end) flag,
-			// NVL(oh.ClientId,'') ,nvl(oh.exchange,'')
-			// from a_sgb_orderheader oh JOIN
-			// a_sgb_orderdetails od ON oh.Id = od.HeaderId
-			// where oh.brokerId = ?
-			lCoreString := `select oh.MasterId,oh.ScripId ,od.RespOrderNo,nvl(DATE_FORMAT(oh.CreatedDate , '%d-%b-%Y'),'') applyDate,nvl(TIME_FORMAT(oh.CreatedDate, '%h:%i:%s %p'),'') applytime,(case when oh.cancelFlag = 'Y' then 'user cancelled' else nvl(oh.status ,'') end) flag,
-			NVL(oh.ClientId,'') ,nvl(oh.exchange,'')
-			from a_sgb_orderheader oh JOIN
-			a_sgb_orderdetails od ON oh.Id = od.HeaderId
-			where oh.brokerId = ?
-			`
 
-			// if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
-			// 	ladditionalCon1 = `or oh.ScripId  = '` + pReportRec.Symbol + `'`
-			// } else if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
-			// 	ladditionalCon1 = `or oh.clientId = '` + pReportRec.ClientId + `'`
-			// } else if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
-			// 	ladditionalCon1 = `or (oh.ScripId  = '` + pReportRec.Symbol + `' and oh.clientId = '` + pReportRec.ClientId + `')`
-			// }
+			// version 2
 
-			if pReportRec.Symbol != "" && pReportRec.ClientId == "" {
-				ladditionalCon1 = `and oh.ScripId  = '` + pReportRec.Symbol + `'`
-			}
-			if pReportRec.ClientId != "" && pReportRec.Symbol == "" {
-				ladditionalCon1 = ladditionalCon1 + `and oh.clientId = '` + pReportRec.ClientId + `'`
-			}
-			if pReportRec.Symbol != "" && pReportRec.ClientId != "" {
-				ladditionalCon1 = ladditionalCon1 + `and (oh.ScripId  = '` + pReportRec.Symbol + `' and oh.clientId = '` + pReportRec.ClientId + `')`
-			}
-			if pReportRec.FromDate != "" && pReportRec.ToDate != "" {
-				ladditionalCon1 = ladditionalCon1 + `and oh.CreatedDate between concat ('` + pReportRec.FromDate + ` 00:00:00.000') and concat ('` + pReportRec.ToDate + ` 23:59:59.000')`
-			}
-
-			lCoreString2 := lCoreString + ladditionalCon1
-			lRows, lErr4 := lDb.Query(lCoreString2, pBrokerId)
-			if lErr4 != nil {
-				log.Println("LGRM04", lErr4)
-				return lIpoArr, lSgbArr, lErr4
+			lSgbOrderHistoryResp, lErr2 := localdetails.GetSGBOrderHistorydetail("", pBrokerId, pReportRec, "GetReport")
+			if lErr2 != nil {
+				log.Println("LGSH03", lErr2)
+				lSgbResp.Status = common.ErrorCode
+				lSgbResp.ErrMsg = "LGSH03" + lErr2.Error()
+				return lIpoArr, SgbArr2, lErr2
 			} else {
-				//Reading the Records
-				for lRows.Next() {
-					lErr5 := lRows.Scan(&lSgb.MasterId, &lSgb.Symbol, &lSgb.ApplicationNo, &lSgb.ApplyDate, &lSgb.AppliedTime, &lSgb.Status, &lSgb.ClientId, &lSgb.Exchange)
-					if lErr5 != nil {
-						log.Println("LGRM05", lErr5)
-						return lIpoArr, lSgbArr, lErr5
-					} else {
-						lSgbArr = append(lSgbArr, lSgb)
-					}
-				}
+				SgbArr2 = lSgbOrderHistoryResp.SgbOrderHistoryArr
 			}
+
+			// lConfigFile := common.ReadTomlConfig("toml/SgbConfig.toml")
+			// lDiscountTxt := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["SGB_DiscountText"])
+
+			// // ladditionalCon1 := ""
+			// var lReqUnit, lReqUnitPrice, lAppliedUnit, lAppliedUnitPrice, lAllocatedUnit, lAllocatedUnitPrice string
+
+			// lCoreString := `select h.MasterId,h.ScripId,m.Name,m.Isin,d.ReqOrderNo OrderNo,date_format(h.CreatedDate, '%d-%b-%y, %l:%i %p') orderDate,
+			//     concat(DATE_FORMAT(m.BiddingStartDate, '%d %b %y'),' -  ',DATE_FORMAT(m.BiddingEndDate, '%d %b %y')) as DateRange,
+			// 	concat(DATE_FORMAT(sm.BiddingStartDate, '%d %b %Y'),' ',TIME_FORMAT(sm.DailyStartTime , '%h:%i%p')) as startDateWithTime,
+			// 	concat(DATE_FORMAT(sm.BiddingEndDate, '%d %b %Y'),' ',TIME_FORMAT('` + lCloseTime + `' , '%h:%i%p')) as endDateWithTime,
+			//     d.ReqSubscriptionUnit RequestedUnit, d.ReqRate RequestedUnitPrice, nvl(d.RespSubscriptionunit,'') AppliedUnit,
+			//     nvl(d.RespRate,'') AppliedUnitPrice,nvl(d.RespSubscriptionunit,'') AllocatedUnit, nvl(d.RespRate,'') AllocatedUnitPrice,
+			//     lower(h.Status) OrderStatus,(m.FaceValue - m.MinPrice) DiscountAmount, h.SIvalue,h.SItext,  d.Exchange,d.RespOrderNo,h.ClientId
+			//     from a_sgb_master m,a_sgb_orderheader h ,a_sgb_orderdetails d
+			//     where m.id = h.MasterId and d.HeaderId = h.Id
+			//     and h.brokerId = ?
+			// 	AND (? = '' OR h.ScripId = ?)
+			// 	AND (? = '' OR h.ClientId = ?)
+			// 	AND (? = '' OR h.CreatedDate BETWEEN CONCAT(?,' 00:00:00.000') AND CONCAT(?,' 23:59:59.000'))`
+
+			// lCoreString := `select h.MasterId,h.ScripId,m.Name,m.Isin,d.ReqOrderNo OrderNo,date_format(h.CreatedDate, '%d-%b-%y, %l:%i %p') orderDate,
+			//     concat(DATE_FORMAT(m.BiddingStartDate, '%d %b %y'),' -  ',DATE_FORMAT(m.BiddingEndDate, '%d %b %y')) as DateRange,
+			// 	concat(DATE_FORMAT(m.BiddingStartDate, '%d %b %Y'),' ',TIME_FORMAT(m.DailyStartTime , '%h:%i%p'),' -  ',
+			// 		   DATE_FORMAT(m.BiddingEndDate, '%d %b %Y'),' ',TIME_FORMAT(m.DailyEndTime , '%h:%i%p')) as dateRangeWithTime2,
+			//     d.ReqSubscriptionUnit RequestedUnit, d.ReqRate RequestedUnitPrice, nvl(d.RespSubscriptionunit,'') AppliedUnit,
+			//     nvl(d.RespRate,'') AppliedUnitPrice,nvl(d.RespSubscriptionunit,'') AllocatedUnit, nvl(d.RespRate,'') AllocatedUnitPrice,
+			//     lower(h.Status) OrderStatus,(m.FaceValue - m.MinPrice) DiscountAmount, h.SIvalue,h.SItext,  d.Exchange,d.RespOrderNo,h.ClientId
+			//     from a_sgb_master m,a_sgb_orderheader h ,a_sgb_orderdetails d
+			//     where m.id = h.MasterId and d.HeaderId = h.Id
+			//     and h.brokerId = ?
+			// 	AND (? = '' OR h.ScripId = ?)
+			// 	AND (? = '' OR h.ClientId = ?)
+			// 	AND (? = '' OR h.CreatedDate BETWEEN CONCAT(?,' 00:00:00.000') AND CONCAT(?,' 23:59:59.000'))`
+
+			// log.Println("Symbol", pReportRec.Symbol, lSgbOrder.Symbol)
+
+			// lRows, lErr4 := lDb.Query(lCoreString, pBrokerId, pReportRec.Symbol, pReportRec.Symbol, pReportRec.ClientId, pReportRec.ClientId, pReportRec.FromDate, pReportRec.FromDate, pReportRec.ToDate)
+			// if lErr4 != nil {
+			// 	log.Println("LGRM04", lErr4)
+			// 	return lIpoArr, SgbArr2, lErr4
+			// } else {
+			// 	//Reading the Records
+			// 	for lRows.Next() {
+			// 		lErr5 := lRows.Scan(&lSgbOrder.Id, &lSgbOrder.Symbol, &lSgbOrder.Name, &lSgbOrder.Isin, &lSgbOrder.OrderNo, &lSgbOrder.OrderDate, &lSgbOrder.DateRange, &lSgbOrder.DateRangeWithTime, &lReqUnit, &lReqUnitPrice, &lAppliedUnit, &lAppliedUnitPrice, &lAllocatedUnit, &lAllocatedUnitPrice, &lSgbOrder.OrderStatus, &lSgbOrder.DiscountAmt, &lSgbOrder.SIValue, &lSgbOrder.SIText, &lSgbOrder.Exchange, &lSgbOrder.ExchOrderNo, &lSgbOrder.ClientId)
+			// 		if lErr5 != nil {
+			// 			log.Println("LGRM05", lErr5)
+			// 			return lIpoArr, SgbArr2, lErr5
+			// 		} else {
+			// 			lSgbOrder.RequestedUnit, _ = strconv.Atoi(lReqUnit)
+			// 			lSgbOrder.RequestedUnitPrice, _ = strconv.Atoi(lReqUnitPrice)
+			// 			lSgbOrder.RequestedAmount = lSgbOrder.RequestedUnit * lSgbOrder.RequestedUnitPrice
+
+			// 			lSgbOrder.AppliedUnit, _ = strconv.Atoi(lAppliedUnit)
+			// 			lSgbOrder.AppliedUnitPrice, _ = strconv.Atoi(lAppliedUnitPrice)
+			// 			lSgbOrder.AppliedAmount = lSgbOrder.AppliedUnit * lSgbOrder.AppliedUnitPrice
+
+			// 			lSgbOrder.AllotedUnit, _ = strconv.Atoi(lAllocatedUnit)
+			// 			lSgbOrder.AllotedUnitPrice, _ = strconv.Atoi(lAllocatedUnitPrice)
+			// 			lSgbOrder.AppliedAmount = lSgbOrder.AllotedUnit * lSgbOrder.AllotedUnitPrice
+
+			// lSgbOrder.WebToolTip = false
+			// lSgbOrder.DiscountText = lDiscountTxt
+
+			// 			SgbArr2 = append(SgbArr2, lSgbOrder)
+			// 		}
+			// 	}
+			// }
+			// log.Println("SgbArr2", SgbArr2)
 		}
 	}
 	log.Println("GetReportModule (-)")
-	return lIpoArr, lSgbArr, nil
+	return lIpoArr, SgbArr2, nil
 }
 
 // this method is added to check the given symbol is valid or not
 //by Pavithra
-func CheckSymbolValid(pReportRec ReportReqStruct) (string, error) {
+func CheckSymbolValid(pReportRec localdetails.ReportReqStruct) (string, error) {
 	log.Println("CheckSymbolValid (+)")
 
 	lStatus := common.ErrorCode

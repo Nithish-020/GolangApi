@@ -1,0 +1,75 @@
+# ProcessFlag
+NonProcess = "N"
+Processed = "Y"
+ErrorCase = "E"
+
+#statusFlag
+# For Nonprocess use ="N" from proccess Flag
+
+#This Code Successfully Processed and Passed All JV Cases without getting error
+Success = "Y"
+
+#This Code is to indicate error getting while verifying clients account maxpayout
+VerifyError = "V"
+
+#This code indicates client account does not have sufficient amount in account to place NCB
+InsufficientError = "I"
+
+#this code indicates if we getting error  while processing Back Office JV 
+BlockClientFundError = "B"
+
+#This code indicates if we getting error  when reversing the executed JV 
+ReverseProcessError = "R"
+
+#This code indicates if we getting error while processing Front Office JV 
+FrontOfficeError = "F"
+
+#This Code indicates if we getting error while placing the orders on exchange 
+ExchangeError = "E"
+
+NCB_Status_Fetch_Count = "15"
+
+NCB_StartTime = "00:00:00"
+NCB_EndTime = "23:59:59"
+NCB_CloseTime = "17:30:00"
+
+# #to restrict the quantity in NCB
+NCB_GsecMAXQUANTITY = "200000"
+NCB_TbillMAXQUANTITY = "200000"
+NCB_SdlMAXQUANTITY = "200000"
+
+#NCBNoDataText
+NCB_GSMasterNoDataText = "No GOI NCB are open for sale currently !!!."
+NCB_GSHistoryNoDataText = "You haven't invested in any GOIs."
+NCB_TBMasterNoDataText = "No TBill NCB are open for sale currently !!!."
+NCB_TBHistoryNoDataText = "You haven't invested in any TBills."
+NCB_SGMasterNoDataText = "No SDL NCB are open for sale currently !!!."
+NCB_SGHistoryNoDataText = "You haven't invested in any SDLs."
+NCB_DiscountText = "Online Discount ₹"
+NCB_ShowDiscount = "Y"
+NCB_CancelAllowed = "Y"
+NCB_ModifyAllowed = "Y"
+NCB_InfoText = "If you want to Modify the bond please cancel the existing bond."
+NCB_DefaultRefundText = "Do you want to delete the application ?"
+
+#Configuration time for NCB
+NCB_SchConfig_time = "12:30:00"
+
+#Configuration for Apply anyDay
+NCB_ApplyDay_Flag = "Y"
+
+#Configuration For Specific Clients
+NCB_Specific_Client = ""
+
+#ProcessFlagForSchedule
+Process_NCB_Flag = "N"
+Schedule_NCB_Flag = "N"
+
+#Configuration for Immediate Apply to Exchange
+#(I - ImmediateProcess ,L - LastDayProcess)
+NCB_Immediate_Flag = "L" 
+
+
+#MailConfiguration LookUp Details
+NCB_EmailId_LookupCode = "ncb_email_dist"
+NCB_EmailContent_LookupCode = "ncb_email_content"

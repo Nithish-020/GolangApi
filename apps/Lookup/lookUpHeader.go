@@ -202,7 +202,7 @@ func AddLookUpHeader(w http.ResponseWriter, r *http.Request) {
 		var lResp HeaderResponse
 		lResp.Status = "S"
 		body, lErr1 := ioutil.ReadAll(r.Body)
-		log.Println("body", string(body))
+		// log.Println("body", string(body))
 		if lErr1 != nil {
 			lResp.Status = "E"
 			log.Println("Err 1", lErr1)
@@ -211,7 +211,7 @@ func AddLookUpHeader(w http.ResponseWriter, r *http.Request) {
 
 			lErr2 := json.Unmarshal(body, &lInput)
 			// lId = string(body)
-			log.Println("Input", lInput)
+			// log.Println("Input", lInput)
 			if lErr2 != nil {
 				lResp.Status = "E"
 				log.Println("Err 2", lErr2)
@@ -306,7 +306,7 @@ func ExistsId(db *sql.DB, Code string) (string, error) {
 func InsertHeaderValue(lDb *sql.DB, lInput LookUpHeader) error {
 	log.Println("InsertHeaderValue(+)")
 
-	log.Println("insert input", lInput)
+	// log.Println("insert input", lInput)
 
 	// ! To insert the LookUpHeader code,description
 	CoreString := `insert into xx_lookup_header(Code ,description ,createdBy, createdDate, updatedBy, updatedDate)

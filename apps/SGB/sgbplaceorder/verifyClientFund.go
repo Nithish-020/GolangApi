@@ -64,7 +64,7 @@ func FetchClientFund(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 
 		var lRespRec FundRespStruct
-
+		lRespRec.Status = common.SuccessCode
 		lClientId, lErr1 := apiaccess.VerifyApiAccess(r, common.ABHIAppName, common.ABHICookieName, "/sgb")
 		if lErr1 != nil {
 			log.Println("SPFC01", lErr1)
@@ -106,31 +106,35 @@ func FetchClientFund(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//commented by Pavithra
-// THIS THE THE OLDER VERSION TO FETCH CLIENT FUND
-// func VerifyFundDetails(pClientId string) (FundRespStruct, error) {
-// 	log.Println("VerifyFundDetails (+)")
-// 	//
-// 	var lClientFundDetailRec clientfund.ClientFundStruct
+// Written by Nithish
+// func VerifyFOFundDetails(pClientId string) (FundRespStruct, error) {
+// 	log.Println("VerifyFOFundDetails (+)")
 // 	//
 // 	var lRespRec FundRespStruct
-// 	//
-// 	lClientFundDetailArr, lErr1 := clientfund.VerifyFund(pClientId)
-// 	if lErr1 != nil {
-// 		log.Println("SPVFD01", lErr1)
-// 		return lRespRec, lErr1
+
+// 	lToken, lErr := GetFOToken()
+// 	if lErr != nil {
+// 		log.Println("SPVFD01", lErr)
+// 		return lRespRec, lErr
 // 	} else {
-// 		log.Println(lClientFundDetailArr)
-// 		if lClientFundDetailArr != nil {
-// 			for lidx := 0; lidx < len(lClientFundDetailArr); lidx++ {
-// 				lClientFundDetailRec = lClientFundDetailArr[lidx]
-// 			}
-// 			if lClientFundDetailRec.AccountCode == "" && lClientFundDetailRec.Amount == "" {
-// 				log.Println("lClientFundDetailRec", lClientFundDetailRec)
+// 		//
+// 		lClientFundDetail, lErr1 := clientfund.VerifyFOFund(pClientId, lToken)
+// 		if lErr1 != nil {
+// 			log.Println("SPVFD02", lErr1)
+// 			return lRespRec, lErr1
+// 		} else {
+// 			log.Println(lClientFundDetail)
+
+// 			if lClientFundDetail.Cash == "" {
 // 				lRespRec.AccountBalance = 0.0
 // 				lRespRec.Status = common.ErrorCode
 // 			} else {
-// 				lRespRec.AccountBalance, _ = strconv.ParseFloat(lClientFundDetailRec.Amount, 64)
+// 				lCash, _ := strconv.ParseFloat(lClientFundDetail.Cash, 64)
+// 				lPayin, _ := strconv.ParseFloat(lClientFundDetail.PayIn, 64)
+// 				lPayout, _ := strconv.ParseFloat(lClientFundDetail.PayOut, 64)
+// 				lBrokCollAmt, _ := strconv.ParseFloat(lClientFundDetail.BrkCollAmt, 64)
+
+// 				lRespRec.AccountBalance = lCash + lPayin + lPayout - lBrokCollAmt
 // 				lRespRec.Status = common.SuccessCode
 // 			}
 // 		} else {
@@ -138,42 +142,38 @@ func FetchClientFund(w http.ResponseWriter, r *http.Request) {
 // 			lRespRec.Status = common.ErrorCode
 // 		}
 // 	}
-// 	log.Println("VerifyFundDetails (-)")
+// 	log.Println("VerifyFOFundDetails (-)")
 // 	return lRespRec, nil
 // }
 
 // Written by Nithish
 func VerifyFOFundDetails(pClientId string) (FundRespStruct, error) {
 	log.Println("VerifyFOFundDetails (+)")
-	//
+
 	var lRespRec FundRespStruct
 
-	lToken, lErr := GetFOToken()
-	if lErr != nil {
-		log.Println("SPVFD01", lErr)
-		return lRespRec, lErr
+	lClientFundDetail, lErr1 := clientfund.VerifyMaxPayout(pClientId)
+	if lErr1 != nil {
+		log.Println("SPVFD02", lErr1)
+		return lRespRec, lErr1
 	} else {
-		//
-		lClientFundDetail, lErr1 := clientfund.VerifyFOFund(pClientId, lToken)
-		if lErr1 != nil {
-			log.Println("SPVFD02", lErr1)
-			return lRespRec, lErr1
-		} else {
-			log.Println(lClientFundDetail)
 
-			if lClientFundDetail.Cash == "" {
-				lRespRec.AccountBalance = 0.0
-				lRespRec.Status = common.ErrorCode
+		log.Println(lClientFundDetail)
+		if lClientFundDetail.Status == "Ok" {
+			lRespRec.Status = common.SuccessCode
+			lFloatVal, lErr3 := strconv.ParseFloat(lClientFundDetail.PayOut, 64)
+			if lErr3 != nil {
+				log.Println("SPVFD03", lErr3)
+				return lRespRec, lErr3
 			} else {
-				lCash, _ := strconv.ParseFloat(lClientFundDetail.Cash, 64)
-				lPayin, _ := strconv.ParseFloat(lClientFundDetail.PayIn, 64)
-				lPayout, _ := strconv.ParseFloat(lClientFundDetail.PayOut, 64)
-				lBrokCollAmt, _ := strconv.ParseFloat(lClientFundDetail.BrkCollAmt, 64)
-
-				lRespRec.AccountBalance = lCash + lPayin + lPayout - lBrokCollAmt
-				lRespRec.Status = common.SuccessCode
+				log.Println("lFloatVal", lFloatVal)
+				lRespRec.AccountBalance = lFloatVal
 			}
+		} else {
+			lRespRec.Status = common.ErrorCode
+			return lRespRec, nil
 		}
+
 	}
 	log.Println("VerifyFOFundDetails (-)")
 	return lRespRec, nil

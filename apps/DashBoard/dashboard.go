@@ -95,7 +95,7 @@ func GetDashboardDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			lDashResp.SegmentArr = lResultArr
-			log.Println("lResultArr", lDashResp.SegmentArr)
+			// log.Println("lResultArr", lDashResp.SegmentArr)
 
 			// This method only call when the api is called from the router "/dashboard/setup"
 			if lCurrentRouter == "/dashboard/setup" {

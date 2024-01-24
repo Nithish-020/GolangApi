@@ -2,7 +2,6 @@ package clientDetail
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -72,68 +71,81 @@ Date: 29AUG2023
 // 	return lEmailId, nil
 // }
 
+// type EmailStruct struct {
+// 	EmailId string `json:"emailId"`
+// }
+
+// [{"client_dp_code":"1208030000741751","client_dp_name":"  KARTHIKRAJA","emailId":"KARTHIK2768@YMAIL.COM","pan_no":"EXPPK4076L"}]
+
 type EmailStruct struct {
-	EmailId string `json:"emailId"`
+	EmailId        string `json:"emailId"`
+	Client_dp_code string `json:"client_dp_code"`
+	Client_dp_name string `json:"client_dp_name"`
+	Pan_no         string `json:"pan_no"`
 }
 
-func GetClientEmailId(pClientId string) (string, error) {
+func GetClientEmailId(pClientId string) (EmailStruct, error) {
 	log.Println("GetClientEmailId (+)")
-	config := common.ReadTomlConfig("./toml/emailconfig.toml")
+	config := common.ReadTomlConfig("toml/novoConfig.toml")
 	loginurl := fmt.Sprintf("%v", config.(map[string]interface{})["LoginUrl"])
 
-	log.Println("clientid", pClientId)
 	login := loginurl + pClientId
+	var lClientdetails EmailStruct
 	var ClientDetails []EmailStruct
-	var lEmailId string
 	var lHeaderArr []apiUtil.HeaderDetails
 	// ==========================
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
-	lLogInputRec.Request = pClientId
-	lLogInputRec.EndPoint = "/GetClientEmailId"
-	lLogInputRec.Flag = common.INSERT
-	lLogInputRec.ClientId = pClientId
-	lLogInputRec.Method = "POST"
+	// var lLogInputRec Function.ParameterStruct
+	// lLogInputRec.Request = pClientId
+	// lLogInputRec.EndPoint = "/?qc=CLEML&typ=v&qp1=" + pClientId
+	// lLogInputRec.Flag = common.INSERT
+	// lLogInputRec.ClientId = pClientId
+	// lLogInputRec.Method = "POST"
 
 	// ! LogEntry method is used to store the Request in Database
-	lId, lErr1 := Function.LogEntry(lLogInputRec)
-	if lErr1 != nil {
-		log.Println("CDGCE01", lErr1)
-		return lEmailId, lErr1
+	// lId, lErr1 := Function.LogEntry(lLogInputRec)
+	// if lErr1 != nil {
+	// 	log.Println("CDGCE01", lErr1)
+	// 	return lClientdetails, lErr1
+	// } else {
+	lResp, lErr2 := apiUtil.Api_call(login, "GET", "", lHeaderArr, "ClientDetails")
+	if lErr2 != nil {
+		log.Println("CDGCE02", lErr2)
+		return lClientdetails, lErr2
 	} else {
-		EmailId, lErr2 := apiUtil.Api_call(login, "GET", "", lHeaderArr, "Emailfetch")
+		lErr3 := json.Unmarshal([]byte(lResp), &ClientDetails)
 		if lErr2 != nil {
-			log.Println("CDGCE02", lErr2)
-			return lEmailId, lErr2
+			log.Println("CDGCE03", lErr3)
+			return lClientdetails, lErr3
 		} else {
-			lErr3 := json.Unmarshal([]byte(EmailId), &ClientDetails)
-			if lErr2 != nil {
-				log.Println("NESM02", lErr3)
-				return lEmailId, lErr3
+			if ClientDetails == nil {
+				lErr := common.CustomError("Client Details not found")
+				return lClientdetails, lErr
 			} else {
-				if ClientDetails != nil {
-					for _, Mail := range ClientDetails {
-						// log.Println("Mail", Mail)
-						lEmailId = Mail.EmailId
-					}
-				} else {
-
-					log.Println("No Details Available for ClienMail")
-					//  Return Error Message Needed
+				for _, Mail := range ClientDetails {
+					// log.Println("Mail", Mail)
+					lClientdetails = Mail
 				}
-				lLogInputRec.Response = lEmailId
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				// create instance to hold errors
-				var lErr4 error
-				lId, lErr4 = Function.LogEntry(lLogInputRec)
-				if lErr4 != nil {
-					log.Println("NSM04", lErr4)
-					return lEmailId, lErr4
-				}
+				// lClientdetails.Pan_no = ""
+				// lResponse, lErr4 := json.Marshal(ClientDetails)
+				// if lErr4 != nil {
+				// 	log.Println("CDGCE04", lErr4)
+				// 	return lClientdetails, lErr4
+				// } else {
+				// lLogInputRec.Response = string(lResponse)
+				// lLogInputRec.LastId = lId
+				// lLogInputRec.Flag = common.UPDATE
+				// _, lErr5 := Function.LogEntry(lLogInputRec)
+				// if lErr5 != nil {
+				// 	log.Println("CDGCE05", lErr5)
+				// 	return lClientdetails, lErr5
+				// }
+				// }
 			}
+
 		}
 	}
+	// }
 	log.Println("GetClientEmailId (-)")
-	return lEmailId, nil
+	return lClientdetails, nil
 }

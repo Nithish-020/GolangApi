@@ -14,15 +14,16 @@ import (
 )
 
 type SgbModifyStruct struct {
-	Id       int    `json:"id"`
-	Symbol   string `json:"name"`
-	BidId    string `json:"bidId"`
-	OrderNo  string `json:"orderNo"`
-	Isin     string `json:"isin"`
-	Unit     int    `json:"unit"`
-	Price    int    `json:"price"`
-	DateTime string `json:"dateTime"`
-	Total    int    `json:"total"`
+	Id          int    `json:"id"`
+	Symbol      string `json:"name"`
+	BidId       string `json:"bidId"`
+	OrderNo     string `json:"orderNo"`
+	Isin        string `json:"isin"`
+	Unit        int    `json:"unit"`
+	Price       int    `json:"price"`
+	DateTime    string `json:"dateTime"`
+	Total       int    `json:"total"`
+	ExchOrderNo string `json:"exchOrderNo"`
 }
 
 // Response Structure for GetSgbMaster API
@@ -111,6 +112,7 @@ func GetSgbModifyDetail(w http.ResponseWriter, r *http.Request) {
 		}
 		//-----------END OF GETTING CLIENT AND STAFF DETAILS----------------
 		lConvId, _ := strconv.Atoi(lMasterId)
+		log.Println("lClientId, lConvId, lOrderNo, lBrokerId", lClientId, lConvId, lOrderNo, lBrokerId)
 
 		lRespStruct, lErr2 := GetModifyDetail(lClientId, lConvId, lOrderNo, lBrokerId)
 		if lErr2 != nil {
@@ -168,21 +170,22 @@ func GetModifyDetail(pClientId string, pMasterId int, pOrderNo string, pBrokerId
 		// 	and sh.MasterId = ?
 		// 	and sd.OrderNo = ?
 		// 	and sh.brokerId = ?`
-		lCoreString := `select sh.Id,sm.Symbol,sd.BidId  ,sd.RespOrderNo ,sd.ReqSubscriptionunit ,sd.ReqRate ,sm.Isin isin,
-			CONCAT( case
-				WHEN DAY(sm.BiddingEndDate) % 10 = 1 AND DAY(sm.BiddingEndDate) % 100 <> 11 THEN CONCAT(DAY(sm.BiddingEndDate), 'st')
-				WHEN DAY(sm.BiddingEndDate) % 10 = 2 AND DAY(sm.BiddingEndDate) % 100 <> 12 THEN CONCAT(DAY(sm.BiddingEndDate), 'nd')
-				WHEN DAY(sm.BiddingEndDate) % 10 = 3 AND DAY(sm.BiddingEndDate) % 100 <> 13 THEN CONCAT(DAY(sm.BiddingEndDate), 'rd')
-				ELSE CONCAT(DAY(sm.BiddingEndDate), 'th')
-				end,' ',
-				DATE_FORMAT(sm.BiddingEndDate, '%b %Y'),' | ',
-				TIME_FORMAT(sm.DailyEndTime , '%h:%i%p')) AS formatted_datetime 
-			from a_sgb_orderdetails sd,a_sgb_orderheader sh, a_sgb_master sm
-			where sh.Id = sd.HeaderId 
-			and sm.Id = sh.MasterId 
-			and sh.MasterId = ?
-			and sd.RespOrderNo = ?
-			and sh.brokerId = ?`
+		lCoreString := `select sh.Id,sm.Symbol,sd.BidId  ,sd.ReqOrderNo ,sd.ReqSubscriptionunit ,sd.ReqRate ,sm.Isin isin,
+		CONCAT( case
+			WHEN DAY(sm.BiddingEndDate) % 10 = 1 AND DAY(sm.BiddingEndDate) % 100 <> 11 THEN CONCAT(DAY(sm.BiddingEndDate), 'st')
+			WHEN DAY(sm.BiddingEndDate) % 10 = 2 AND DAY(sm.BiddingEndDate) % 100 <> 12 THEN CONCAT(DAY(sm.BiddingEndDate), 'nd')
+			WHEN DAY(sm.BiddingEndDate) % 10 = 3 AND DAY(sm.BiddingEndDate) % 100 <> 13 THEN CONCAT(DAY(sm.BiddingEndDate), 'rd')
+			ELSE CONCAT(DAY(sm.BiddingEndDate), 'th')
+			end,' ',
+			DATE_FORMAT(sm.BiddingEndDate, '%b %Y'),' | ',
+			TIME_FORMAT(sm.DailyEndTime , '%h:%i%p')) AS formatted_datetime,
+			sd.RespOrderNo 
+		from a_sgb_orderdetails sd,a_sgb_orderheader sh, a_sgb_master sm
+		where sh.Id = sd.HeaderId 
+		and sm.Id = sh.MasterId 
+		and sh.MasterId = ?
+		and sd.ReqOrderNo = ?
+		and sh.brokerId = ?`
 		lRows, lErr2 := lDb.Query(lCoreString, pMasterId, pOrderNo, pBrokerId)
 		if lErr2 != nil {
 			log.Println("LGMD02", lErr2)
@@ -191,7 +194,7 @@ func GetModifyDetail(pClientId string, pMasterId int, pOrderNo string, pBrokerId
 			//This for loop is used to collect the records from the database and store them in structure
 			for lRows.Next() {
 				var lOrderNo []uint8
-				lErr3 := lRows.Scan(&lSgbModifyRec.Id, &lSgbModifyRec.Symbol, &lSgbModifyRec.BidId, &lOrderNo, &lUnit, &lPrice, &lSgbModifyRec.Isin, &lSgbModifyRec.DateTime)
+				lErr3 := lRows.Scan(&lSgbModifyRec.Id, &lSgbModifyRec.Symbol, &lSgbModifyRec.BidId, &lOrderNo, &lUnit, &lPrice, &lSgbModifyRec.Isin, &lSgbModifyRec.DateTime, &lSgbModifyRec.ExchOrderNo)
 				if lErr3 != nil {
 					log.Println("LGMD03", lErr3)
 					return lSgbModifyRec, lErr3

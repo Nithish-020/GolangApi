@@ -2,7 +2,6 @@ package nseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -95,56 +94,57 @@ func Transaction(pToken string, pRequestArr []ExchangeReqStruct, pUser string) (
 
 	//For Exchagnge response
 	var lExhangeResArr []ExchangeRespStruct
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// To establish the connection between toml file
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["Transcation"])
 	log.Println(lUrl, "endpoint")
 
-	lRequest, lErr := json.Marshal(pRequestArr)
+	// lRequest, lErr := json.Marshal(pRequestArr)
+	// if lErr != nil {
+	// 	log.Println("NT01", lErr)
+	// 	return lExhangeResArr, lErr
+	// } else {
+	// 	lLogInputRec.Request = string(lRequest)
+	// 	lLogInputRec.EndPoint = "/v1/transcations/addbulk"
+	// 	lLogInputRec.Flag = common.INSERT
+	// 	lLogInputRec.ClientId = pUser
+	// 	lLogInputRec.Method = "POST"
+
+	// 	// LogEntry method is used to store the Request in Database
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NT02", lErr)
+	// 		return lExhangeResArr, lErr
+	// 	} else {
+	// ExchangeOrder method used to call exchange API
+	lResp, lErr := ExchangeOrder(pToken, lUrl, pRequestArr)
 	if lErr != nil {
-		log.Println("NT01", lErr)
+		log.Println("NT03", lErr)
 		return lExhangeResArr, lErr
 	} else {
-		lLogInputRec.Request = string(lRequest)
-		lLogInputRec.EndPoint = "/v1/transcations/addbulk"
-		lLogInputRec.Flag = common.INSERT
-		lLogInputRec.ClientId = pUser
-		lLogInputRec.Method = "POST"
-
-		// LogEntry method is used to store the Request in Database
-		lId, lErr = Function.LogEntry(lLogInputRec)
-		if lErr != nil {
-			log.Println("NT02", lErr)
-			return lExhangeResArr, lErr
-		} else {
-			// ExchangeOrder method used to call exchange API
-			lResp, lErr := ExchangeOrder(pToken, lUrl, pRequestArr)
-			if lErr != nil {
-				log.Println("NT03", lErr)
-				return lExhangeResArr, lErr
-			}
-			lExhangeResArr = lResp
-			// Store thre Response in Log table
-			lResponse, lErr := json.Marshal(lResp)
-			if lErr != nil {
-				log.Println("NT04", lErr)
-				return lExhangeResArr, lErr
-			} else {
-				lLogInputRec.Response = string(lResponse)
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				lId, lErr = Function.LogEntry(lLogInputRec)
-				if lErr != nil {
-					log.Println("NT05", lErr)
-					return lExhangeResArr, lErr
-				}
-			}
-		}
+		lExhangeResArr = lResp
 	}
-	log.Println(lExhangeResArr)
+	// Store thre Response in Log table
+	// lResponse, lErr := json.Marshal(lResp)
+	// if lErr != nil {
+	// 	log.Println("NT04", lErr)
+	// 	return lExhangeResArr, lErr
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	_, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NT05", lErr)
+	// 		return lExhangeResArr, lErr
+	// 	}
+	// }
+	// }
+	// }
+	// log.Println(lExhangeResArr)
 	log.Println("Transaction....(-)")
 	return lExhangeResArr, nil
 }

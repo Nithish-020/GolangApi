@@ -10,8 +10,13 @@ SubscribeUrl ="http://ftunsubscribe.s3-website.ap-south-1.amazonaws.com/?us="
 ConfigurationSet="FlatTradeMailer"
 AccountsTeamMail = "pavithra.v@fcsonline.co.in"
 Subject= "Ipo Offline Scheduler"
-ToEmailId = "pavithra.v@fcsonline.co.in,prashanth.s@fcsonline.co.in"
+ToEmailId = "pavithra.v@fcsonline.co.in"
 #ToEmailId = "appsupport@flattrade.in"
+
+#BCC emaild for NOVO
+#Bcc_emailId = "novoemails@fortunetradingcorporation.zohodesk.com"
+Bcc_emailId = "nitishkumar.a@fcsonline.co.in"
+
 
 ######Alternate way to Get Login Email  For Temperary Purpose
 LoginUrl =  "http://192.168.150.21:29091/query/?qc=CLEML&typ=v&qp1="

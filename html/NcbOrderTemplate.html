@@ -19,8 +19,8 @@
 
 <body style="background-color:#EDF7F6;">
     <center>
-        <table width="600" cellpadding="10" cellspacing="0" style="min-width:600px;  background-color:#ffffff;">
-
+        <table width="600" cellpadding="10" cellspacing="0"
+            style="min-width:600px;  background-color:#ffffff;vertical-align: middle; ">
             <tr>
                 <td width="15%" height="33%"> <img src="https://flattrade.s3.ap-south-1.amazonaws.com/logo/novo.png"
                         alt="" height="100%" width="100%"></td>
@@ -35,14 +35,12 @@
                         height="100%"></td>
             </tr>
             <tr>
-
                 <td colspan="3">
-
                     <p><b>Dear {{.Name}} </b></p>
                     <p
                         style="text-align: left;font-family: 'arial'; font-size: 13px;; line-height:20px;text-indent: 25px; ">
-                        I am Here to provide you with an update on your
-                        recent National Commercial Bank (NCB) order
+                        I am Here to provide you with an information that your order for Non-Competitive Bidding (NCB) has
+                        been successfully placed with our company.
                     </p>
                     <table class="pt-5" cellpadding="0" cellspacing="0" align="center"
                         style=" border: 1px solid rgb(218, 216, 216);width: 100%; ">
@@ -50,22 +48,25 @@
                             <tr style="background-color: #0965da;">
                                 <th scope="col"
                                     style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center;">
-                                    S.No </th>
-                                <th scope="col"
-                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center;">
                                     Symbol</th>
                                 <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center;">
+                                    Series</th>
+                                <th scope="col"
                                     style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
-                                    ApplicationNumber</th>
+                                    Order Number</th>
                                 <th scope="col"
                                     style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
                                     Order Date</th>
                                 <th scope="col"
                                     style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
-                                    Amount </th>
+                                    Unit</th>
                                 <th scope="col"
                                     style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
-                                    Activity </th>
+                                    Price </th>
+                                <th scope="col"
+                                    style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
+                                    Amount </th>
                                 <th scope="col"
                                     style="color:#ffffff;padding:5px; font-family: 'arial'; font-size: 13px; line-height:20px;line-height:30px;text-align: center">
                                     Status </th>
@@ -74,24 +75,26 @@
                         <tbody>
                             <tr>
                                 <td valign="top" align="center"
-                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
-                                    1. </td>
-
-                                <td valign="top" align="center"
                                     style=" border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
                                     {{ .Symbol }} </td>
                                 <td valign="top" align="center"
+                                    style=" border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{ .Series }} </td>
+                                <td valign="top" align="center"
                                     style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
-                                    {{ .ApplicationNumber }} </td>
+                                    {{ .OrderNumber }} </td>
                                 <td valign="top" align="center"
                                     style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
                                     {{ .OrderDate }} </td>
                                 <td valign="top" align="center"
                                     style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
-                                    {{ .Amount }} </td>
+                                    {{ .Unit }} </td>
                                 <td valign="top" align="center"
                                     style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
-                                    {{ .Activity }} </td>
+                                    {{ .Price }} </td>
+                                <td valign="top" align="center"
+                                    style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
+                                    {{ .Amount }} </td>
                                 <td valign="top" align="center"
                                     style="border: 1px solid rgb(218, 216, 216);padding:5px; font-size: 13px; line-height:20px; font-family: 'arial'">
                                     {{ .Status }} </td>
@@ -99,18 +102,12 @@
                         </tbody>
                     </table>
                     <p style="font-family: 'arial'; font-size: 13px; line-height:18px;">
-                        <!-- <br>Thanks,<br>
-                                    AutoBot.<br><br> -->
                         <b>Please Note:</b><br>
                         <span style="font: size 0.8rem;padding-left: 25px; font-family: 'arial';">
                             I am pleased to inform you that your NCB order has been placed successfully on
                             your behalf. Your order has been handled according to the details mentioned
                             above. Your investment will be a valuable addition to your portfolio, and we are
                             confident in the potential benefits that NCBs offer.</span> <br>
-                        <span style="font: size 0.8rem;padding-left: 25px; font-family: 'arial';">
-                            Your payment ensures the smooth execution of your NCB order and secures your investment in
-                            this valuable financial instrument. Your NCBs will be allotted to your Demat account as per
-                            the terms of the order. </span> <br>
                     <p style="font-size:13px ;text-align: center;">
                         Thank you for choosing flattrade for your investment needs. We
                         greatly value your trust and look forward to serving you with excellence.

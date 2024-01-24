@@ -2,7 +2,6 @@ package nseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -92,55 +91,56 @@ Date: 11DEC2023
 func IpoMktCatwise(pToken string, pUser string, pSymbol string) (IpoMktCatwiseRespStruct, error) {
 	log.Println("IpoMktCatwise...(+)")
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	//create instance to receive iporespStruct
 	var lApiRespRec IpoMktCatwiseRespStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// create instance to hold errors
-	var lErr error
+	// var lErr error
 
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["MarketCatwise"])
 	lUrl = lUrl + pSymbol
 	log.Println(lUrl, "endpoint")
 
-	lLogInputRec.Request = ""
-	lLogInputRec.EndPoint = "nse/mktdata/v1/catwise/"
-	lLogInputRec.Flag = common.INSERT
-	lLogInputRec.ClientId = pUser
-	lLogInputRec.Method = "GET"
+	// lLogInputRec.Request = ""
+	// lLogInputRec.EndPoint = "nse/mktdata/v1/catwise/"
+	// lLogInputRec.Flag = common.INSERT
+	// lLogInputRec.ClientId = pUser
+	// lLogInputRec.Method = "GET"
 
-	// ! LogEntry method is used to store the Request in Database
-	lId, lErr = Function.LogEntry(lLogInputRec)
+	// // ! LogEntry method is used to store the Request in Database
+	// lId, lErr = Function.LogEntry(lLogInputRec)
 
+	// if lErr != nil {
+	// 	log.Println("NIMC01", lErr)
+	// 	return lApiRespRec, lErr
+	// } else {
+	// TokenApi method used to call exchange API
+	lResp, lErr := ExchangeMktCatwise(pToken, lUrl)
 	if lErr != nil {
-		log.Println("NIMC01", lErr)
+		log.Println("NIMC02", lErr)
 		return lApiRespRec, lErr
 	} else {
-		// TokenApi method used to call exchange API
-		lResp, lErr := ExchangeMktCatwise(pToken, lUrl)
-		if lErr != nil {
-			log.Println("NIMC02", lErr)
-			return lApiRespRec, lErr
-		}
 		lApiRespRec = lResp
-		// Store thre Response in Log table
-		lResponse, lErr := json.Marshal(lResp)
-		if lErr != nil {
-			log.Println("NIMC03", lErr)
-			return lApiRespRec, lErr
-		} else {
-			lLogInputRec.Response = string(lResponse)
-			lLogInputRec.LastId = lId
-			lLogInputRec.Flag = common.UPDATE
-			lId, lErr = Function.LogEntry(lLogInputRec)
-			if lErr != nil {
-				log.Println("NIMC04", lErr)
-				return lApiRespRec, lErr
-			}
-		}
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr := json.Marshal(lResp)
+	// if lErr != nil {
+	// 	log.Println("NIMC03", lErr)
+	// 	return lApiRespRec, lErr
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NIMC04", lErr)
+	// 		return lApiRespRec, lErr
+	// 	}
+	// }
+	// }
 	// log.Println(lApiRespRec)
 	log.Println("IpoMktCatwise...(-)")
 	return lApiRespRec, nil

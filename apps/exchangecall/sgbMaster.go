@@ -9,23 +9,6 @@ import (
 	"time"
 )
 
-type JvReqStruct struct {
-	OrderNo     string `json:"orderno"`
-	ClientId    string `json:"clientid"`
-	JvStatus    string `json:"jvstatus"`
-	JvStatement string `json:"Jvstatement"`
-	JvAmount    string `json:"jvamount"`
-	JvType      string `json:"jvtype"`
-	Unit        string `json:"unit"`
-	Price       string `json:"price"`
-	ActionCode  string `json:"actioncode"`
-	Symbol      string `json:"symbol"`
-	OrderDate   string `json:"orderdate"`
-	Amount      string `json:"amount"`
-	Mail        string `json:"mail"`
-	ClientName  string `json:"clientname"`
-}
-
 /*
 Pupose: This method used to fetch SGB master records from exchange
 Parameters:
@@ -330,7 +313,7 @@ func ChangeDateFormat(pSgbRespRec nsesgb.SgbDetailStruct) nsesgb.SgbDetailStruct
 	if pSgbRespRec.BiddingStartDate != "" {
 		lStartDate, _ := time.Parse("02-01-2006", pSgbRespRec.BiddingStartDate)
 		pSgbRespRec.BiddingStartDate = lStartDate.Format("2006-01-02")
-		log.Println(pSgbRespRec.BiddingStartDate, "BiddingStartDate")
+		// log.Println(pSgbRespRec.BiddingStartDate, "BiddingStartDate")
 	} else {
 		pSgbRespRec.BiddingStartDate = "0000-00-00"
 	}
@@ -338,7 +321,7 @@ func ChangeDateFormat(pSgbRespRec nsesgb.SgbDetailStruct) nsesgb.SgbDetailStruct
 	if pSgbRespRec.BiddingEndDate != "" {
 		lEndDate, _ := time.Parse("02-01-2006", pSgbRespRec.BiddingEndDate)
 		pSgbRespRec.BiddingEndDate = lEndDate.Format("2006-01-02")
-		log.Println(pSgbRespRec.BiddingEndDate, "BiddingEndDate")
+		// log.Println(pSgbRespRec.BiddingEndDate, "BiddingEndDate")
 	} else {
 		pSgbRespRec.BiddingEndDate = "0000-00-00"
 	}
@@ -346,7 +329,7 @@ func ChangeDateFormat(pSgbRespRec nsesgb.SgbDetailStruct) nsesgb.SgbDetailStruct
 	if pSgbRespRec.T1ModStartDate != "" {
 		lEndDate, _ := time.Parse("02-01-2006", pSgbRespRec.T1ModStartDate)
 		pSgbRespRec.T1ModStartDate = lEndDate.Format("2006-01-02")
-		log.Println(pSgbRespRec.T1ModStartDate, "T1ModStartDate")
+		// log.Println(pSgbRespRec.T1ModStartDate, "T1ModStartDate")
 	} else {
 		pSgbRespRec.T1ModStartDate = "0000-00-00"
 	}
@@ -354,7 +337,7 @@ func ChangeDateFormat(pSgbRespRec nsesgb.SgbDetailStruct) nsesgb.SgbDetailStruct
 	if pSgbRespRec.T1ModEndDate != "" {
 		lEndDate, _ := time.Parse("02-01-2006", pSgbRespRec.T1ModEndDate)
 		pSgbRespRec.T1ModEndDate = lEndDate.Format("2006-01-02")
-		log.Println(pSgbRespRec.T1ModEndDate, "T1ModEndDate")
+		// log.Println(pSgbRespRec.T1ModEndDate, "T1ModEndDate")
 	} else {
 		pSgbRespRec.T1ModEndDate = "0000-00-00"
 	}

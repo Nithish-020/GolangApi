@@ -2,7 +2,6 @@ package bsesgb
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/integration/bse/bseipo"
 	"fcs23pkg/util/apiUtil"
@@ -68,62 +67,63 @@ type RespSgbStatusBidStruct struct {
 func BseSgbDownOrder(pToken string, pUser string, pReqRec SgbStatusReqStruct, pBrokerId int) ([]SgbDownDataRespStruct, error) {
 	log.Println("BseSgbDownOrder (+)")
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	//create instance to receive SgbRespStruct
 	var lApiRespRec []SgbDownDataRespStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// create instance to hold errors
-	var lErr1 error
+	// var lErr1 error
 
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["BseSgbDownload"])
 	log.Println(lUrl, "endpoint")
 
-	lRequest, lErr := json.Marshal(pReqRec)
-	if lErr != nil {
-		log.Println("NT01", lErr)
-		return lApiRespRec, lErr
-	} else {
-		lLogInputRec.Request = string(lRequest)
-		lLogInputRec.EndPoint = "/v1/sgbdownload"
-		lLogInputRec.Flag = common.INSERT
-		lLogInputRec.ClientId = pUser
-		lLogInputRec.Method = "POST"
+	// lRequest, lErr := json.Marshal(pReqRec)
+	// if lErr != nil {
+	// 	log.Println("NT01", lErr)
+	// 	return lApiRespRec, lErr
+	// } else {
+	// 	lLogInputRec.Request = string(lRequest)
+	// 	lLogInputRec.EndPoint = "/v1/sgbdownload"
+	// 	lLogInputRec.Flag = common.INSERT
+	// 	lLogInputRec.ClientId = pUser
+	// 	lLogInputRec.Method = "POST"
 
-		// ! LogEntry method is used to store the Request in Database
-		lId, lErr1 = Function.LogEntry(lLogInputRec)
-		if lErr1 != nil {
-			log.Println("NSM01", lErr1)
-			return lApiRespRec, lErr1
-		} else {
-			// TokenApi method used to call exchange API
-			lResp, lErr2 := BseSgbDownOrderApi(pToken, lUrl, pReqRec, pBrokerId)
-			if lErr2 != nil {
-				log.Println("NSM02", lErr2)
-				return lApiRespRec, lErr2
-			}
-			lApiRespRec = lResp
-			log.Println("Response", lResp)
-			// Store thre Response in Log table
-			lResponse, lErr3 := json.Marshal(lResp)
-			if lErr3 != nil {
-				log.Println("NSM03", lErr3)
-				return lApiRespRec, lErr3
-			} else {
-				lLogInputRec.Response = string(lResponse)
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				// create instance to hold errors
-				var lErr4 error
-				lId, lErr4 = Function.LogEntry(lLogInputRec)
-				if lErr4 != nil {
-					log.Println("NSM04", lErr4)
-					return lApiRespRec, lErr4
-				}
-			}
-		}
+	// 	// ! LogEntry method is used to store the Request in Database
+	// 	lId, lErr1 = Function.LogEntry(lLogInputRec)
+	// 	if lErr1 != nil {
+	// 		log.Println("NSM01", lErr1)
+	// 		return lApiRespRec, lErr1
+	// 	} else {
+	// TokenApi method used to call exchange API
+	lResp, lErr2 := BseSgbDownOrderApi(pToken, lUrl, pReqRec, pBrokerId)
+	if lErr2 != nil {
+		log.Println("NSM02", lErr2)
+		return lApiRespRec, lErr2
+	} else {
+		lApiRespRec = lResp
 	}
+	log.Println("Response", lResp)
+	// Store thre Response in Log table
+	// lResponse, lErr3 := json.Marshal(lResp)
+	// if lErr3 != nil {
+	// 	log.Println("NSM03", lErr3)
+	// 	return lApiRespRec, lErr3
+	// } else {
+	// lLogInputRec.Response = string(lResponse)
+	// lLogInputRec.LastId = lId
+	// lLogInputRec.Flag = common.UPDATE
+	// // create instance to hold errors
+	// var lErr4 error
+	// lId, lErr4 = Function.LogEntry(lLogInputRec)
+	// if lErr4 != nil {
+	// 	log.Println("NSM04", lErr4)
+	// 	return lApiRespRec, lErr4
+	// }
+	// }
+	// }
+	// }
 	log.Println("BseSgbDownOrder (-)")
 	return lApiRespRec, nil
 }

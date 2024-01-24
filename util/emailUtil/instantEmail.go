@@ -55,7 +55,7 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 func SendEmail(input EmailInput, ReqSource string) error {
 	log.Println("SendEmail (+)")
 
-	config := common.ReadTomlConfig("./toml/emailconfig.toml")
+	config := common.ReadTomlConfig("../emailconfig.toml")
 
 	//input.ToEmailId = "prabhaharan.s@fcsonline.co.in"
 
@@ -67,6 +67,10 @@ func SendEmail(input EmailInput, ReqSource string) error {
 	// replyto := fmt.Sprintf("%v", config.(map[string]interface{})["ReplyTo"])
 	// //subject := fmt.Sprintf("%v", config.(map[string]interface{})["Subject"])
 	url := fmt.Sprintf("%v", config.(map[string]interface{})["Url"])
+
+	// BCC mail for All Novo Emails
+	lBccMailId := fmt.Sprintf("%v", config.(map[string]interface{})["Bcc_emailId"])
+	Bcc := "Bcc: " + lBccMailId
 
 	//mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 
@@ -89,13 +93,31 @@ func SendEmail(input EmailInput, ReqSource string) error {
 	toHeader := "To: " + strings.Join(to, ",") + "\n"
 
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	// commented by pavithra, added BCC in the below code
+	// msg := "From: " + input.FromDspName + "\n" +
+	// 	toHeader +
+	// 	//bcc +
+	// 	//cc +
+	// 	"reply-to: " + input.ReplyTo + "\n" +
+	// 	"Subject: " + input.Subject + "\n" + mime +
+	// 	input.Body
 	msg := "From: " + input.FromDspName + "\n" +
-		toHeader +
-		//bcc +
-		//cc +
+		toHeader + Bcc + "\n" +
 		"reply-to: " + input.ReplyTo + "\n" +
 		"Subject: " + input.Subject + "\n" + mime +
 		input.Body
+
+		// ===============Added Bcc Mail Content By Prashanth==============================
+
+	if lBccMailId != "" {
+		vcc := strings.Split(lBccMailId, ",")
+		if len(vcc) > 0 {
+			for i := 0; i < len(vcc); i++ {
+				to = append(to, vcc[i])
+			}
+		}
+	}
+	// ===========================================================================
 
 	// log.Println(msg)
 	//--------------------------------------

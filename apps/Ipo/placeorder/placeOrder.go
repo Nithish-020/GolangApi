@@ -135,6 +135,7 @@ func PlaceOrder(w http.ResponseWriter, r *http.Request) {
 		var lReqRec OrderReqStruct
 		// create a instance of array type OrderResStruct.This variable is used to store the response values.
 		var lRespRec OrderResStruct
+		lRespRec.Status = common.SuccessCode
 
 		//-----------START TO GETTING CLIENT AND STAFF DETAILS--------------
 		lClientId := ""
@@ -147,225 +148,252 @@ func PlaceOrder(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			if lClientId == "" {
+				lErr2 := common.CustomError("UserDetails not Found")
 				lRespRec.Status = common.ErrorCode
-				fmt.Fprintf(w, helpers.GetErrorString("PPO01", "UserDetails not Found"))
+				lRespRec.ErrMsg = "PPO02" + lErr2.Error()
+				fmt.Fprintf(w, helpers.GetErrorString("PPO02", "UserDetails not Found"))
 				return
 			}
 		}
 		//added by naveen:to fetch the source (from where mobile or web)by cookie name
-		source, lErr2 := abhilogin.GetSourceOfUser(r, common.ABHICookieName)
-		if lErr2 != nil {
+		source, lErr3 := abhilogin.GetSourceOfUser(r, common.ABHICookieName)
+		if lErr3 != nil {
 			lRespRec.Status = common.ErrorCode
-			lRespRec.ErrMsg = "PPO02" + lErr1.Error()
-			fmt.Fprintf(w, helpers.GetErrorString("PPO02", "Unable to get source"))
+			lRespRec.ErrMsg = "PPO03" + lErr3.Error()
+			fmt.Fprintf(w, helpers.GetErrorString("PPO03", "Unable to get source"))
 			return
 		}
 
 		//-----------END OF GETTING CLIENT AND STAFF DETAILS----------------
 
 		// Read the request body values in lBody variable
-		lBody, lErr3 := ioutil.ReadAll(r.Body)
+		lBody, lErr4 := ioutil.ReadAll(r.Body)
 		log.Println(string(lBody))
-		if lErr3 != nil {
-			log.Println("PPO03", lErr3.Error())
+		if lErr4 != nil {
+			log.Println("PPO04", lErr4.Error())
 			lRespRec.Status = common.ErrorCode
-			fmt.Fprintf(w, helpers.GetErrorString("PPO03", "Unable to get your request now!!Try Again.."))
+			fmt.Fprintf(w, helpers.GetErrorString("PPO04", "Unable to get your request now!!Try Again.."))
 			return
 		} else {
 			// Unmarshal the request body values in lReqRec variable
-			lErr4 := json.Unmarshal(lBody, &lReqRec)
-			if lErr4 != nil {
-				log.Println("PPO04", lErr4.Error())
+			lErr5 := json.Unmarshal(lBody, &lReqRec)
+			if lErr5 != nil {
+				log.Println("PPO05", lErr5.Error())
 				lRespRec.Status = common.ErrorCode
-				fmt.Fprintf(w, helpers.GetErrorString("PPO04", "Unable to get your request now. Please try after sometime"))
+				fmt.Fprintf(w, helpers.GetErrorString("PPO05", "Unable to get your request now. Please try after sometime"))
 				return
 			} else {
-				lExchange, lErr5 := FetchDirectory(lReqRec)
-				// lExchange, lErr4 := memberdetail.BseNsePercentCalc(lBrokerId, "/ipo")
-				log.Println("lExchange", lExchange)
-				if lErr5 != nil {
+				lEligibleToOrder, lErr6 := Ipo_EligibleToOrder(lReqRec, lBrokerId, lClientId)
+				if lErr6 != nil {
 					lRespRec.Status = common.ErrorCode
-					lRespRec.ErrMsg = "PPO05" + lErr4.Error()
-					fmt.Fprintf(w, helpers.GetErrorString("PPO05", "Directory Not Found. Please try after sometime"))
+					lRespRec.ErrMsg = "PPO06" + lErr6.Error()
+					fmt.Fprintf(w, helpers.GetErrorString("PPO06", "Unable to get your request now. Please try after sometime"))
 					return
 				} else {
-					log.Println("exchange getting in fetch directory", lExchange)
-
-					lRespRec.Status = common.SuccessCode
-					var lErrorRec ErrorStruct
-					var lExchangeResp []nseipo.ExchangeRespStruct
-					// commented by pavithra
-					// log.Println("lReqRec", lReqRec)
-					lExchangeReq, lErr6 := ConstructReqStruct(lReqRec, lClientId)
-					if lErr6 != nil {
-						log.Println("PPO06", lErr5.Error())
+					if !lEligibleToOrder {
+						lErr7 := common.CustomError("You have already applied")
 						lRespRec.Status = common.ErrorCode
-						fmt.Fprintf(w, helpers.GetErrorString("PPO06", "Unable to process your request now. Please try after sometime"))
+						lRespRec.ErrMsg = "PPO07" + lErr7.Error()
+						fmt.Fprintf(w, helpers.GetErrorString("PPO07", "You have already applied"))
 						return
-					} else {
-						// commented by pavithra
-						// log.Println(lReqRec.PreApply)
-						// This method is Not Providing Mail ID Because Client Data is not inserting on DB
-						// lClientMailId, lErr9 := clientDetail.GetClientEmailId(r, lClientId)
-						//  Temperory Alternate method to create here to Get an Client Mail ID
-						lClientMailId, lErr7 := clientDetail.GetClientEmailId(lClientId)
-						if lErr7 != nil {
-							log.Println("PPO07", lErr7.Error())
+					} else if lEligibleToOrder {
+
+						lExchange, lErr8 := FetchDirectory(lReqRec)
+						// lExchange, lErr4 := memberdetail.BseNsePercentCalc(lBrokerId, "/ipo")
+						// log.Println("lExchange", lExchange)
+						if lErr8 != nil {
 							lRespRec.Status = common.ErrorCode
-							fmt.Fprintf(w, helpers.GetErrorString("PPO07", "Unable to process your request!"))
+							lRespRec.ErrMsg = "PPO08" + lErr8.Error()
+							fmt.Fprintf(w, helpers.GetErrorString("PPO08", "Directory Not Found. Please try after sometime"))
 							return
 						} else {
-							// check the placing order is a preapply applictaion
-							if lReqRec.PreApply == "pre" {
-								// for pending status updating
+							log.Println("exchange getting in fetch directory", lExchange)
 
-								//added by naveen:add one additional parameter source to insert in ipo header&and bid tracking
-								//lErr8 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId)
-								lErr8 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId, source)
-								if lErr8 != nil {
-									log.Println("PPO08", lErr8.Error())
-									lRespRec.Status = common.ErrorCode
-									fmt.Fprintf(w, helpers.GetErrorString("PPO08", "Unable to Updating in local.. "))
-									return
-								} else {
-									lRespRec.AppStatus = "Pending"
-									lRespRec.AppReason = "Application saved in offline,it will be process when bidding will start."
-									lRespRec.Status = common.SuccessCode
-								}
-
+							// lRespRec.Status = common.SuccessCode
+							var lErrorRec ErrorStruct
+							var lExchangeResp []nseipo.ExchangeRespStruct
+							// commented by pavithra
+							// log.Println("lReqRec", lReqRec)
+							lExchangeReq, lClientMailId, lErr9 := ConstructReqStruct(lReqRec, lClientId)
+							if lErr9 != nil {
+								log.Println("PPO09", lErr9.Error())
+								lRespRec.Status = common.ErrorCode
+								lRespRec.ErrMsg = "PPO09" + lErr9.Error()
+								fmt.Fprintf(w, helpers.GetErrorString("PPO09", "Unable to process your request now. Please try after sometime"))
+								return
 							} else {
+								// commented by pavithra
+								// log.Println(lReqRec.PreApply)
+								// This method is Not Providing Mail ID Because Client Data is not inserting on DB
+								// lClientMailId, lErr9 := clientDetail.GetClientEmailId(r, lClientId)
+								//  Temperory Alternate method to create here to Get an Client Mail ID
+								// lClientMailId, lErr7 := clientDetail.GetClientEmailId(lClientId)
+								// if lErr7 != nil {
+								// 	log.Println("PPO07", lErr7.Error())
+								// 	lRespRec.Status = common.ErrorCode
+								// 	fmt.Fprintf(w, helpers.GetErrorString("PPO07", "Unable to process your request!"))
+								// 	return
+								// } else {
+								// check the placing order is a preapply applictaion
+								if lReqRec.PreApply == "pre" {
+									// for pending status updating
 
-								lTodayAvailable, lErr9 := Function.CheckEndDate(lReqRec.MasterId)
-								if lErr9 != nil {
-									log.Println("PPO09", lErr9.Error())
-									lRespRec.Status = common.ErrorCode
-									fmt.Fprintf(w, helpers.GetErrorString("PPO09", "Please try after sometime"))
-									return
+									//added by naveen:add one additional parameter source to insert in ipo header&and bid tracking
+									//lErr8 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId)
+									lErr10 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId, source)
+									if lErr10 != nil {
+										log.Println("PPO10", lErr10.Error())
+										lRespRec.Status = common.ErrorCode
+										lRespRec.ErrMsg = "PP010" + lErr10.Error()
+										fmt.Fprintf(w, helpers.GetErrorString("PPO10", "Unable to Updating in local.. "))
+										return
+									} else {
+										lRespRec.AppStatus = "Pending"
+										lRespRec.AppReason = "Application saved in offline,it will be process when bidding will start."
+										lRespRec.Status = common.SuccessCode
+									}
+
 								} else {
-									// commented by pavithra
-									// log.Println("lTodayAvailable", lTodayAvailable)
-									// log.Println("lExchangeReq", lExchangeReq)
 
-									if lTodayAvailable == "True" {
+									lTodayAvailable, lErr11 := Function.CheckEndDate(lReqRec.MasterId)
+									if lErr11 != nil {
+										log.Println("PPO11", lErr11.Error())
+										lRespRec.Status = common.ErrorCode
+										lRespRec.ErrMsg = "PPO11" + lErr11.Error()
+										fmt.Fprintf(w, helpers.GetErrorString("PPO11", "Please try after sometime"))
+										return
+									} else {
 
-										if lExchangeReq != nil {
-											//For Check the Current timestamp value
-											lIndicator, lErr10 := Function.GetTime(lReqRec.MasterId)
-											// commented by pavithra
-											// log.Println("lIndicator", lIndicator)
-											if lErr10 != nil {
-												log.Println("PPO010", lErr10.Error())
-												lRespRec.Status = common.ErrorCode
-												fmt.Fprintf(w, helpers.GetErrorString("PPO010", "Unable to process request,Please try after sometime"))
-												return
-											} else {
-												//-----------------------------------------
-												if lIndicator == "True" {
-													//added by naveen:add one additional parameter source to insert in ipo header
-													//lErr11 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId)
-													lErr11 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId, source)
-													if lErr11 != nil {
-														log.Println("PPO11", lErr11.Error())
-														lRespRec.Status = common.ErrorCode
-														fmt.Fprintf(w, helpers.GetErrorString("PPO11", "Unable to Updating in local.. "))
-														return
-													} else {
-														lRespRec.AppStatus = "Pending"
-														lRespRec.AppReason = "Application Saved in Offline,it will be process on next working day!"
-														lRespRec.Status = common.SuccessCode
-													}
+										if lTodayAvailable == "True" {
 
-												} else if lIndicator == "False" {
-													if lExchange == common.BSE {
-														//added by naveen:add one argument source to insert in bidtracking table
-														//lRespRec, lExchangeResp, lErrorRec = BsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId)
-														lRespRec, lExchangeResp, lErrorRec = BsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId, source)
-														if lErrorRec.ErrCode != "" {
-															// commented by pavithra
-															// log.Println("lRespRec", lRespRec)
-															// log.Println("lExchangeResp", lExchangeResp)
-															// log.Println("lErrorRec", lErrorRec)
-															fmt.Fprintf(w, helpers.GetErrorString(lErrorRec.ErrCode, lErrorRec.ErrMsg))
-															return
-														}
-													} else if lExchange == common.NSE {
-														//added by naveen:add one argument source to insert in bidtracking table
-														//lRespRec, lExchangeResp, lErrorRec = NsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId)
-														lRespRec, lExchangeResp, lErrorRec = NsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId, source)
-														if lErrorRec.ErrCode != "" {
-															// commented by pavithra
-															// log.Println("lRespRec", lRespRec)
-															// log.Println("lExchangeResp", lExchangeResp)
-															// log.Println("lErrorRec", lErrorRec)
-															fmt.Fprintf(w, helpers.GetErrorString(lErrorRec.ErrCode, lErrorRec.ErrMsg))
-															return
-														}
-													}
-
-													if lRespRec.Status != common.ErrorCode {
-														//----------------->>>> Get Application Number <<<<<--------------------
-														lGetApp, lErr12 := GetApplication(lExchangeResp)
-														// lGetApp, lErr12 := GetApplication(lRespRec)lRespRec
-														if lErr12 != nil {
-															log.Println("PPO12", lErr12.Error())
+											if lExchangeReq != nil {
+												//For Check the Current timestamp value
+												lIndicator, lErr12 := Function.GetTime(lReqRec.MasterId)
+												// commented by pavithra
+												// log.Println("lIndicator", lIndicator)
+												if lErr12 != nil {
+													log.Println("PPO12", lErr12.Error())
+													lRespRec.Status = common.ErrorCode
+													lRespRec.ErrMsg = "PPO12" + lErr12.Error()
+													fmt.Fprintf(w, helpers.GetErrorString("PPO12", "Unable to process request,Please try after sometime"))
+													return
+												} else {
+													//-----------------------------------------
+													if lIndicator == "True" {
+														//added by naveen:add one additional parameter source to insert in ipo header
+														//lErr11 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId)
+														lErr13 := UpdatePending(lExchangeReq, lClientId, lReqRec, lExchange, lClientMailId, lBrokerId, source)
+														if lErr13 != nil {
+															log.Println("PPO13", lErr13.Error())
 															lRespRec.Status = common.ErrorCode
-															fmt.Fprintf(w, helpers.GetErrorString("PPO12", "Invalid Application Number."))
+															lRespRec.ErrMsg = "PPO13" + lErr13.Error()
+
+															fmt.Fprintf(w, helpers.GetErrorString("PPO13", "Unable to Updating in local.. "))
 															return
 														} else {
-															// commented by pavithra
-															// log.Println(lGetApp)
-															if lGetApp.ClientEmail != "" {
-																for lRespIdx := 0; lRespIdx < len(lExchangeResp); lRespIdx++ {
-																	lEmail, lErr13 := ConstructMail(lGetApp, lExchangeResp[lRespIdx].Status)
-																	if lErr13 != nil {
-																		log.Println("PPO13", lErr13.Error())
-																		lRespRec.Status = common.ErrorCode
-																		fmt.Fprintf(w, helpers.GetErrorString("PPO13", "Unable to process mail."))
-																		return
-																	} else {
-																		// fmt.Println(lEmail)
-																		lErr14 := emailUtil.SendEmail(lEmail, lExchangeResp[lRespIdx].Status)
-																		if lErr14 != nil {
-																			log.Println("PPO14", lErr14.Error())
+															lRespRec.AppStatus = "Pending"
+															lRespRec.AppReason = "Application Saved in Offline,it will be process on next working day!"
+															lRespRec.Status = common.SuccessCode
+														}
+
+													} else if lIndicator == "False" {
+														if lExchange == common.BSE {
+															//added by naveen:add one argument source to insert in bidtracking table
+															//lRespRec, lExchangeResp, lErrorRec = BsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId)
+															lRespRec, lExchangeResp, lErrorRec = BsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId, source)
+															if lErrorRec.ErrCode != "" {
+																// commented by pavithra
+																// log.Println("lRespRec", lRespRec)
+																// log.Println("lExchangeResp", lExchangeResp)
+																// log.Println("lErrorRec", lErrorRec)
+																fmt.Fprintf(w, helpers.GetErrorString(lErrorRec.ErrCode, lErrorRec.ErrMsg))
+																return
+															}
+														} else if lExchange == common.NSE {
+															//added by naveen:add one argument source to insert in bidtracking table
+															//lRespRec, lExchangeResp, lErrorRec = NsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId)
+															lRespRec, lExchangeResp, lErrorRec = NsePlaceOrder(lExchangeReq, lReqRec, lClientId, lClientMailId, lBrokerId, source)
+															if lErrorRec.ErrCode != "" {
+																// commented by pavithra
+																// log.Println("lRespRec", lRespRec)
+																// log.Println("lExchangeResp", lExchangeResp)
+																// log.Println("lErrorRec", lErrorRec)
+																fmt.Fprintf(w, helpers.GetErrorString(lErrorRec.ErrCode, lErrorRec.ErrMsg))
+																return
+															}
+														}
+
+														if lRespRec.Status != common.ErrorCode {
+															//----------------->>>> Get Application Number <<<<<--------------------
+															lGetApp, lErr14 := GetApplication(lExchangeResp)
+															if lErr14 != nil {
+																log.Println("PPO14", lErr14.Error())
+																lRespRec.Status = common.ErrorCode
+																lRespRec.ErrMsg = "PPO14" + lErr14.Error()
+																fmt.Fprintf(w, helpers.GetErrorString("PPO14", "Invalid Application Number."))
+																return
+															} else {
+
+																if lGetApp.ClientEmail != "" {
+																	for lRespIdx := 0; lRespIdx < len(lExchangeResp); lRespIdx++ {
+																		lEmail, lErr15 := ConstructMail(lGetApp, lExchangeResp[lRespIdx].Status)
+																		if lErr15 != nil {
+																			log.Println("PPO15", lErr15.Error())
 																			lRespRec.Status = common.ErrorCode
-
-																			fmt.Fprintf(w, helpers.GetErrorString("PPO14", "Unable to sent mail."))
+																			lRespRec.ErrMsg = "PPO15" + lErr15.Error()
+																			fmt.Fprintf(w, helpers.GetErrorString("PPO15", "Unable to process mail."))
 																			return
-																		}
+																		} else {
+																			// fmt.Println(lEmail)
+																			lErr16 := emailUtil.SendEmail(lEmail, lExchangeResp[lRespIdx].Status)
+																			if lErr16 != nil {
+																				log.Println("PPO16", lErr16.Error())
+																				lRespRec.Status = common.ErrorCode
+																				lRespRec.ErrMsg = "PPO16" + lErr16.Error()
+																				fmt.Fprintf(w, helpers.GetErrorString("PPO16", "Unable to sent mail."))
+																				return
+																			}
 
+																		}
 																	}
 																}
 															}
 														}
+													} else {
+														lErr17 := common.CustomError("Unable to proceed Application!!!")
+														lRespRec.Status = common.ErrorCode
+														lRespRec.ErrMsg = "PPO17" + lErr17.Error()
+														log.Println("PPO17", "Unable to proceed Application!!!")
+														fmt.Fprintf(w, helpers.GetErrorString("PPO17", "Unable to proceed Application!!!"))
+														return
 													}
-												} else {
-													log.Println("PPO15", "Unable to proceed Application!!!")
-													fmt.Fprintf(w, helpers.GetErrorString("PPO15", "Unable to proceed Application!!!"))
-													return
 												}
+											} else {
+												lErr18 := common.CustomError("No Records Found for Exchange")
+												lRespRec.Status = common.ErrorCode
+												lRespRec.ErrMsg = "PPO18" + lErr18.Error()
+												log.Println("PPO18", "No Records found for process application")
 											}
 										} else {
+											lErr19 := common.CustomError("Timing Closed for IPO")
 											lRespRec.Status = common.ErrorCode
-											lRespRec.ErrMsg = "No Records Found for Exchange"
-											log.Println("No Records found for process application")
+											lRespRec.ErrMsg = "PPO19" + lErr19.Error()
+											log.Println("PPO19", "Timing Closed for IPO")
 										}
-									} else {
-										lRespRec.Status = common.ErrorCode
-										lRespRec.ErrMsg = "Timing Closed for IPO"
-										log.Println("Timing Closed for IPO")
 									}
 								}
 							}
+							// }
 						}
 					}
 				}
 			}
 		}
 		// Marshal the response values of lRespRec in lData
-		lData, lErr14 := json.Marshal(lRespRec)
-		if lErr14 != nil {
-			log.Println("PPO15", lErr14)
-			fmt.Fprintf(w, helpers.GetErrorString("PPO15", "Unable to getting response.."))
+		lData, lErr20 := json.Marshal(lRespRec)
+		if lErr20 != nil {
+			log.Println("PPO20", lErr20)
+			fmt.Fprintf(w, helpers.GetErrorString("PPO20", "Unable to getting response.."))
 			return
 		} else {
 			fmt.Fprintf(w, string(lData))
@@ -1192,33 +1220,57 @@ Response:
 Author:Pavithra
 Date: 12JUNE2023
 */
-func ConstructReqStruct(pReqRec OrderReqStruct, lClientId string) ([]nseipo.ExchangeReqStruct, error) {
+func ConstructReqStruct(pReqRec OrderReqStruct, lClientId string) ([]nseipo.ExchangeReqStruct, string, error) {
 	log.Println("ConstructReqStruct (+)")
 
 	// create an instance of lReqRec type nse.ExchangeReqStruct.
 	var lReqRec nseipo.ExchangeReqStruct
 	// create an instance of lReqArr Array type nse.ExchangeReqStruct.
 	var lReqArr []nseipo.ExchangeReqStruct
+	var lEmailId string
 
 	// call the getDpId method to get the lDpId and lClientName
-	lDpId, lClientName, lErr := getDpId(lClientId)
+	lClientdetails, lErr := clientDetail.GetClientEmailId(lClientId)
 	if lErr != nil {
 		log.Println("PCRS01", lErr)
-		return nil, lErr
+		return nil, lEmailId, lErr
+	} else {
+		// lReqRec.Pan = lClientdetails.Pan_no
+		// lReqRec.ClientName = lClientdetails.Client_dp_name
+		// lReqRec.ClientBenId = lClientdetails.Client_dp_code
+		// lEmailId = lClientdetails.EmailId
+
+		lEmailId = lClientdetails.EmailId
+		if lClientdetails.Pan_no != "" {
+			lReqRec.Pan = lClientdetails.Pan_no
+		} else {
+			return nil, lEmailId, common.CustomError("Client PAN No not found")
+		}
+		if lClientdetails.Client_dp_name != "" {
+			lReqRec.ClientName = lClientdetails.Client_dp_name
+		} else {
+			return nil, lEmailId, common.CustomError("Client Name not found")
+		}
+		if lClientdetails.Client_dp_code != "" {
+			lReqRec.ClientBenId = lClientdetails.Client_dp_code
+		} else {
+			return nil, lEmailId, common.CustomError("Client DP ID not found")
+		}
+
 	}
 
 	// call the getPanNO method to get the lPanNo
-	lPanNo, lErr := getPanNO(lClientId)
-	if lErr != nil {
-		log.Println("PCRS02", lErr)
-		return nil, lErr
-	}
+	// lPanNo, lErr := clientDetail.GetClientEmailId(lClientId)
+	// if lErr != nil {
+	// 	log.Println("PCRS02", lErr)
+	// 	return nil, lErr
+	// }
 
 	// call the getApplication method to get the lAppNo
 	lAppNo, lRefNo, lErr := getApplicationNo(pReqRec.Symbol, pReqRec.ApplicationNo, lClientId)
 	if lErr != nil {
 		log.Println("PCRS03", lErr)
-		return nil, lErr
+		return nil, lEmailId, lErr
 	} else {
 		// If lAppNo is nil,generate new application no or else pass the lAppNo
 		if lAppNo == "nil" {
@@ -1237,13 +1289,13 @@ func ConstructReqStruct(pReqRec OrderReqStruct, lClientId string) ([]nseipo.Exch
 
 	lReqRec.Symbol = pReqRec.Symbol
 	lReqRec.Category = pReqRec.Category
-	lReqRec.ClientName = lClientName
+	// lReqRec.ClientName = lClientdetails.Client_dp_name
 	lReqRec.Depository = "CDSL"
 	lReqRec.DpId = ""
-	lReqRec.ClientBenId = lDpId
+	// lReqRec.ClientBenId = lClientdetails.Client_dp_code
 	lReqRec.NonASBA = false
 	// lReqRec.ChequeNo = ""
-	lReqRec.Pan = lPanNo
+	// lReqRec.Pan = lClientdetails.Pan_no
 	lReqRec.AllotmentMode = "demat"
 	lReqRec.Upi = pReqRec.UpiId + pReqRec.UpiEndPoint
 	lReqRec.UpiFlag = "Y"
@@ -1261,7 +1313,7 @@ func ConstructReqStruct(pReqRec OrderReqStruct, lClientId string) ([]nseipo.Exch
 	log.Println("lReqArr", lReqArr)
 
 	log.Println("ConstructReqStruct (-)")
-	return lReqArr, nil
+	return lReqArr, lEmailId, nil
 }
 
 /*
@@ -1364,16 +1416,28 @@ func ConstructBidDetail(pBidDetail []OrderBidStruct) []nseipo.RequestBidStruct {
 	for lReqidx := 0; lReqidx < len(lReqArr); lReqidx++ {
 		lBidRec.ActivityType = lReqArr[lReqidx].ActivityType
 
+		// COMMENTED BY NITHISH BECAUSE THE RANDOM NUMBER METHOD
+		// GIVES THE SAME FOR MORE THAN ONE BID
+
 		if lReqArr[lReqidx].ActivityType == "new" {
-			lRandomString := common.GetRandomNumber()
-			lBidRec.BidReferenceNo = lRandomString
-			lBidRec.Remark = strconv.Itoa(lRandomString)
-			// commented by pavithra
-			// log.Println("oihgyigoijpohphpo", lRandomString, lBidRec.BidReferenceNo, lReqArr[lReqidx].BidReferenceNo)
+			lRandomString, lErr1 := getSequenceNo()
+			if lErr1 != nil {
+				log.Println("IPCBD01", lErr1)
+				return lBidArr
+			} else {
+				lBidRec.BidReferenceNo = lRandomString
+				lBidRec.Remark = strconv.Itoa(lRandomString)
+			}
 		} else {
 			lBidRec.BidReferenceNo, _ = strconv.Atoi(lReqArr[lReqidx].BidReferenceNo)
 			lBidRec.Remark = lReqArr[lReqidx].BidReferenceNo
 		}
+
+		// commented by pavithra
+		// ADDED BY NITHISH AND IT RECEIVES THE BIDREFNO GIVEN FROM THE UI SIDE HAS IT IS
+		// lBidRec.BidReferenceNo, _ = strconv.Atoi(lReqArr[lReqidx].BidReferenceNo)
+		// lBidRec.Remark = lReqArr[lReqidx].BidReferenceNo
+
 		lBidRec.Series = ""
 		lBidRec.Quantity = lReqArr[lReqidx].Quantity * lReqArr[lReqidx].LotSize
 		lBidRec.AtCutOff = lReqArr[lReqidx].CutOff
@@ -1386,6 +1450,58 @@ func ConstructBidDetail(pBidDetail []OrderBidStruct) []nseipo.RequestBidStruct {
 	}
 	log.Println("ConstructBidDetail (-)")
 	return lBidArr
+}
+
+/*
+Pupose:This method is used to get sequence no for unique bid ref no
+Parameters:
+nil
+Response:
+
+	==========
+	*On Sucess
+	==========
+	123456789012,nil
+
+	==========
+	*On Error
+	==========
+	0,error
+
+Author:Pavithra
+Date: 29DEC2023
+*/
+func getSequenceNo() (int, error) {
+	log.Println("getSequenceNo (+)")
+
+	// this variables is used to get DpId and ClientName from the database.
+	var lSequenceNo int
+
+	// To Establish A database connection,call LocalDbConnect Method
+	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
+	if lErr1 != nil {
+		log.Println("IPGSN01", lErr1)
+		return lSequenceNo, lErr1
+	} else {
+		defer lDb.Close()
+		lCoreString := `SELECT NEXT VALUE FOR a_ipo_reference_s;`
+
+		lRows, lErr2 := lDb.Query(lCoreString)
+		if lErr2 != nil {
+			log.Println("IPGSN02", lErr2)
+			return lSequenceNo, lErr2
+		} else {
+			for lRows.Next() {
+				lErr3 := lRows.Scan(&lSequenceNo)
+				if lErr3 != nil {
+					log.Println("IPGSN03", lErr3)
+					return lSequenceNo, lErr3
+				}
+			}
+		}
+	}
+	log.Println("getSequenceNo (-)")
+	return lSequenceNo, nil
 }
 
 /*
@@ -2036,6 +2152,8 @@ func ConstructMail(lAppArr IpoOrderStruct, pStatus string) (emailUtil.EmailInput
 		Amount            int
 		Activity          string
 		Status            string
+		EmailHeader       string
+		EmailBody         string
 	}
 
 	var lIpoEmailContent emailUtil.EmailInput
@@ -2067,6 +2185,25 @@ func ConstructMail(lAppArr IpoOrderStruct, pStatus string) (emailUtil.EmailInput
 		lDynamicEmailVal.ApplicationNumber = lAppArr.ApplicationNumber
 		lDynamicEmailVal.Activity = lAppArr.ActivityType
 		lDynamicEmailVal.Status = pStatus
+
+		lHeader, lErr2 := GetEmailHeader(lAppArr.ActivityType)
+		if lErr2 != nil {
+			log.Println("IPCM02", lErr2)
+			return lIpoEmailContent, lErr2
+		} else {
+			// get the email content header for Ipo Order Report from the lookup table
+
+			lDynamicEmailVal.EmailHeader = lHeader
+
+			lBody, lErr3 := GetEmailBody(lAppArr.ActivityType)
+			if lErr3 != nil {
+				log.Println("IPCM03", lErr3)
+				return lIpoEmailContent, lErr3
+			} else {
+				// get the email body for Ipo Order Report from the lookup table
+				lDynamicEmailVal.EmailBody = lBody
+			}
+		}
 
 		// commented by pavithra
 		//  This Temperory Method Add to Send Mail For Client
@@ -2211,21 +2348,27 @@ func FetchDirectory(pReqRec OrderReqStruct) (string, error) {
 		return lDirectory, lErr1
 	} else {
 		defer lDb.Close()
-		// commented by pavithra
-		// log.Println("pReqRec", pReqRec.ApplicationNo, "app", pReqRec)
+
 		if pReqRec.ApplicationNo == "" {
-			// commented by pavithra
-			// log.Println("if fetchDirectory ")
+
 			config := common.ReadTomlConfig("./toml/debug.toml")
 			lCheckDirectory := fmt.Sprintf("%v", config.(map[string]interface{})["CurrentDirectory"])
+
 			if lCheckDirectory == "" {
-				lCoreString := `select (case when (select m.Isin  from a_ipo_master m where m.Symbol = ? and m.Exchange = "NSE") = 
-									(select m.Isin  from a_ipo_master m where m.Symbol = ? and m.Exchange = "BSE") then 'BSE' else am.Exchange  end )Exchange
-									from a_ipo_master am 
-									where am.symbol = ?
-									 and am.Id = ?
-									`
-				lRows, lErr2 := lDb.Query(lCoreString, pReqRec.Symbol, pReqRec.Symbol, pReqRec.Symbol, pReqRec.MasterId)
+				// Commnented by nithish kumar on 10JAN2024 to fix the bug to take atleast one exchange of the ipo
+				// below commented query fails when we check the isin with the exchange of the IPO
+				// lCoreString := `select (case when (select m.Isin  from a_ipo_master m where m.Symbol = ? and m.Exchange = "NSE") =
+				// 					(select m.Isin  from a_ipo_master m where m.Symbol = ? and m.Exchange = "BSE") then 'BSE' else am.Exchange  end )Exchange
+				// 					from a_ipo_master am
+				// 					where am.symbol = ?
+				// 					 and am.Id = ?`
+
+				//below query added by nithish on 10Jan2024 to take atleast one exchange of the ipo
+				lCoreString := `select (case when count(distinct m.Exchange) > 1 then 'BSE' else m.Exchange end )Exchange 
+								from a_ipo_master m 
+								where m.Symbol = ?
+								and m.Exchange in('NSE','BSE')`
+				lRows, lErr2 := lDb.Query(lCoreString, pReqRec.Symbol)
 				if lErr2 != nil {
 					log.Println("AFD02", lErr2)
 					return lDirectory, lErr2
@@ -2241,8 +2384,6 @@ func FetchDirectory(pReqRec OrderReqStruct) (string, error) {
 					log.Println("Current IPO directory := ", lDirectory)
 				}
 			} else {
-				// commented by pavithra
-				// log.Println("else Directory")
 				lDirectory = lCheckDirectory
 			}
 		} else {
@@ -2288,4 +2429,82 @@ func FetchDirectory(pReqRec OrderReqStruct) (string, error) {
 	}
 	log.Println("FetchDirectory (-)")
 	return lDirectory, nil
+}
+
+func GetEmailHeader(pActivityType string) (string, error) {
+	log.Println("GetEmailHeader (+)")
+
+	//Instance to capture the email contentHeader based on the activity type
+	lEmailHeader := ""
+
+	// Calling LocalDbConect method in ftdb to estabish the database connection
+	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
+	if lErr1 != nil {
+		log.Println("IPGEH01", lErr1)
+		return lEmailHeader, lErr1
+	} else {
+		defer lDb.Close()
+
+		lCoreString := `select nvl(ld.description,'') description  
+						from xx_lookup_details ld ,xx_lookup_header lh
+						where lh.id = ld.headerid 	
+						and lh.Code = 'ipo_email_contentHeader'
+						and ld.Code = ?`
+		lRows, lErr2 := lDb.Query(lCoreString, pActivityType)
+		if lErr2 != nil {
+			log.Println("IPGEH02", lErr2)
+			return lEmailHeader, lErr2
+		} else {
+			// This for loop is used to collect the record from the database
+			// and store them in variable
+			for lRows.Next() {
+				lErr3 := lRows.Scan(&lEmailHeader)
+				if lErr3 != nil {
+					log.Println("IPGEH03", lErr3)
+					return lEmailHeader, lErr3
+				}
+			}
+		}
+	}
+	log.Println("GetEmailHeader (-)")
+	return lEmailHeader, nil
+}
+
+func GetEmailBody(pActivityType string) (string, error) {
+	log.Println("GetEmailBody (+)")
+
+	// Instance to capture the email contentBody based on the activity type
+	lEmailBody := ""
+
+	// Calling LocalDbConect method in ftdb to estabish the database connection
+	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
+	if lErr1 != nil {
+		log.Println("IPGEB01", lErr1)
+		return lEmailBody, lErr1
+	} else {
+		defer lDb.Close()
+
+		lCoreString := `select nvl(ld.description,'') description  
+						from xx_lookup_details ld ,xx_lookup_header lh
+						where lh.id = ld.headerid 	
+						and lh.Code = 'ipo_email_contentBody'
+						and ld.Code = ? `
+		lRows, lErr2 := lDb.Query(lCoreString, pActivityType)
+		if lErr2 != nil {
+			log.Println("IPGEB02", lErr2)
+			return lEmailBody, lErr2
+		} else {
+			// This for loop is used to collect the record from the database
+			// and store them in variable
+			for lRows.Next() {
+				lErr3 := lRows.Scan(&lEmailBody)
+				if lErr3 != nil {
+					log.Println("IPGEB03", lErr3)
+					return lEmailBody, lErr3
+				}
+			}
+		}
+	}
+	log.Println("GetEmailBody (-)")
+	return lEmailBody, nil
 }

@@ -291,7 +291,7 @@ func GetIpoMasterDetail(pClientId string, pBrokerId int) ([]ActiveIpoStruct, err
 				FROM a_ipo_master m ,a_ipo_categories c,a_ipo_subcategory s
 					WHERE m.Id= s.MasterId AND m.Id = c.MasterId AND m.IssueType = "EQUITY"
 					AND c.code= "RETAIL" AND s.CaCode = "RETAIL" AND s.SubCatCode = "IND"
-					AND s.AllowUpi = 1 AND m.BiddingEndDate >= Curdate() AND m.Exchange = 'NSE'
+					AND s.AllowUpi = 1 AND m.BiddingEndDate >= Curdate() AND m.Exchange = 'BSE'
 					AND not exists (
 						SELECT 1
 						FROM (
@@ -329,7 +329,7 @@ func GetIpoMasterDetail(pClientId string, pBrokerId int) ([]ActiveIpoStruct, err
 			//This for loop is used to collect the records FROM the database AND store them in structure
 			for lRows.Next() {
 				lErr4 := lRows.Scan(&lIpoDataRec.Id, &lIpoDataRec.Name, &lIpoDataRec.Symbol, &lIpoDataRec.BidDate, &lIpoDataRec.EndDate, &lIpoDataRec.PriceRange, &lIpoDataRec.MinPrice, &lIpoDataRec.CutOffPrice, &lIpoDataRec.MinBidQuantity, &lIpoDataRec.IssueSize, &lIpoDataRec.LotSize, &lIpoDataRec.CutOffFlag, &lIpoDataRec.Flag, &lIpoDataRec.Pending, &lIpoDataRec.Upcoming, &lIpoDataRec.BlogLink, &lIpoDataRec.DrhpLink, &lIpoDataRec.Sme, &lIpoDataRec.PreApply, &lIpoDataRec.Category, &lIpoDataRec.Code, &lIpoDataRec.ApplicationNo)
-				log.Println("lRows", lIpoDataRec)
+				// log.Println("lRows", lIpoDataRec)
 				if lErr4 != nil {
 					log.Println("LGIMD04", lErr4)
 					return lIpoDataArr, lErr4

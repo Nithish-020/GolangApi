@@ -2,7 +2,6 @@ package bseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -23,61 +22,62 @@ type PswdRespStruct struct {
 func BsePassword(pReqRec PswdReqStruct, pUser string, pToken string, pBrokerId int) (PswdRespStruct, error) {
 	log.Println("BsePassword (+)")
 	// Create instance for Parameter struct
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	// Create instance for loinRespStruct
 	var lApiRespRec PswdRespStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	//To link the toml file
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["BsePassword"])
 	// To get the details for v1/login from database
 
 	// Marshalling the structure for LogEntry method
-	lRequest, lErr1 := json.Marshal(pReqRec)
-	if lErr1 != nil {
-		log.Println("BIBP01", lErr1)
-		return lApiRespRec, lErr1
-	} else {
-		lLogInputRec.Request = string(lRequest)
-		lLogInputRec.EndPoint = "bse/v1/password"
-		lLogInputRec.Flag = common.INSERT
-		lLogInputRec.ClientId = pUser
-		lLogInputRec.Method = "POST"
+	// lRequest, lErr1 := json.Marshal(pReqRec)
+	// if lErr1 != nil {
+	// 	log.Println("BIBP01", lErr1)
+	// 	return lApiRespRec, lErr1
+	// } else {
+	// 	lLogInputRec.Request = string(lRequest)
+	// 	lLogInputRec.EndPoint = "bse/v1/password"
+	// 	lLogInputRec.Flag = common.INSERT
+	// 	lLogInputRec.ClientId = pUser
+	// 	lLogInputRec.Method = "POST"
 
-		// LogEntry method is used to store the Request in Database
-		var lErr2 error
-		lId, lErr2 = Function.LogEntry(lLogInputRec)
-		if lErr2 != nil {
-			log.Println("BIBP02", lErr2)
-			return lApiRespRec, lErr2
-		} else {
-			// TokenApi method used to call exchange API
-			lResp, lErr3 := BsePasswordApi(pReqRec, lUrl, pToken, pBrokerId)
-			if lErr3 != nil {
-				log.Println("BIBP03", lErr3)
-				return lApiRespRec, lErr3
-			}
-			lApiRespRec = lResp
-			// Store thre Response in Log table
-			lResponse, lErr4 := json.Marshal(lResp)
-			if lErr4 != nil {
-				log.Println("BIBP04", lErr4)
-				return lApiRespRec, lErr4
-			} else {
-				lLogInputRec.Response = string(lResponse)
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				var lErr5 error
-				lId, lErr5 = Function.LogEntry(lLogInputRec)
-				if lErr5 != nil {
-					log.Println("BIBP05", lErr5)
-					return lApiRespRec, lErr5
-				}
-			}
-			log.Println("lApiRespRec", lApiRespRec)
-		}
+	// 	// LogEntry method is used to store the Request in Database
+	// 	var lErr2 error
+	// 	lId, lErr2 = Function.LogEntry(lLogInputRec)
+	// 	if lErr2 != nil {
+	// 		log.Println("BIBP02", lErr2)
+	// 		return lApiRespRec, lErr2
+	// 	} else {
+	// TokenApi method used to call exchange API
+	lResp, lErr3 := BsePasswordApi(pReqRec, lUrl, pToken, pBrokerId)
+	if lErr3 != nil {
+		log.Println("BIBP03", lErr3)
+		return lApiRespRec, lErr3
+	} else {
+		lApiRespRec = lResp
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr4 := json.Marshal(lResp)
+	// if lErr4 != nil {
+	// 	log.Println("BIBP04", lErr4)
+	// 	return lApiRespRec, lErr4
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	var lErr5 error
+	// 	lId, lErr5 = Function.LogEntry(lLogInputRec)
+	// 	if lErr5 != nil {
+	// 		log.Println("BIBP05", lErr5)
+	// 		return lApiRespRec, lErr5
+	// 	}
+	// }
+	// log.Println("lApiRespRec", lApiRespRec)
+	// }
+	// }
 	log.Println("BsePassword (-)")
 	return lApiRespRec, nil
 }

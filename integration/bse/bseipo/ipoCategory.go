@@ -2,7 +2,6 @@ package bseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -40,56 +39,56 @@ Date: 05JUNE2023
 func BseIpoCategory(pToken string, pUser string, pBrokerId int) ([]BseIpoCategoryStruct, error) {
 	log.Println("BseIpoCategory (+)")
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	//create instance to receive SgbRespStruct
 	var lApiRespArr []BseIpoCategoryStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// create instance to hold errors
-	var lErr1 error
+	// var lErr1 error
 
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["BseIpoCategory"])
 	log.Println(lUrl, "endpoint")
 
-	lLogInputRec.Request = ""
-	lLogInputRec.EndPoint = "bse/v1/ipocategory"
-	lLogInputRec.Flag = common.INSERT
-	lLogInputRec.ClientId = pUser
-	lLogInputRec.Method = "GET"
-
+	// lLogInputRec.Request = ""
+	// lLogInputRec.EndPoint = "bse/v1/ipocategory"
+	// lLogInputRec.Flag = common.INSERT
+	// lLogInputRec.ClientId = pUser
+	// lLogInputRec.Method = "GET"
 	// ! LogEntry method is used to store the Request in Database
-	lId, lErr1 = Function.LogEntry(lLogInputRec)
-	if lErr1 != nil {
-		log.Println("BIM01", lErr1)
-		return lApiRespArr, lErr1
+	// lId, lErr1 = Function.LogEntry(lLogInputRec)
+	// if lErr1 != nil {
+	// 	log.Println("BIM01", lErr1)
+	// 	return lApiRespArr, lErr1
+	// } else {
+	// TokenApi method used to call exchange API
+	lResp, lErr2 := BseIpoCategoryApi(pToken, lUrl, pBrokerId)
+	if lErr2 != nil {
+		log.Println("BIM02", lErr2)
+		return lApiRespArr, lErr2
 	} else {
-		// TokenApi method used to call exchange API
-		lResp, lErr2 := BseIpoCategoryApi(pToken, lUrl, pBrokerId)
-		if lErr2 != nil {
-			log.Println("BIM02", lErr2)
-			return lApiRespArr, lErr2
-		}
 		lApiRespArr = lResp
-		// log.Println("Response", lResp)
-		// Store thre Response in Log table
-		lResponse, lErr3 := json.Marshal(lResp)
-		if lErr3 != nil {
-			log.Println("BIM03", lErr3)
-			return lApiRespArr, lErr3
-		} else {
-			lLogInputRec.Response = string(lResponse)
-			lLogInputRec.LastId = lId
-			lLogInputRec.Flag = common.UPDATE
-			// create instance to hold errors
-			var lErr4 error
-			lId, lErr4 = Function.LogEntry(lLogInputRec)
-			if lErr4 != nil {
-				log.Println("BIM04", lErr4)
-				return lApiRespArr, lErr4
-			}
-		}
 	}
+	// log.Println("Response", lResp)
+	// Store thre Response in Log table
+	// lResponse, lErr3 := json.Marshal(lResp)
+	// if lErr3 != nil {
+	// 	log.Println("BIM03", lErr3)
+	// 	return lApiRespArr, lErr3
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	// create instance to hold errors
+	// 	var lErr4 error
+	// 	lId, lErr4 = Function.LogEntry(lLogInputRec)
+	// 	if lErr4 != nil {
+	// 		log.Println("BIM04", lErr4)
+	// 		return lApiRespArr, lErr4
+	// 	}
+	// }
+	// }
 	// log.Println(lApiRespArr)
 	log.Println("BseIpoCategory (-)")
 	return lApiRespArr, nil

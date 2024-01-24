@@ -1,7 +1,9 @@
 package validatesgb
 
 import (
+	"fcs23pkg/common"
 	"fcs23pkg/ftdb"
+	"fmt"
 	"log"
 )
 
@@ -184,6 +186,9 @@ func CheckSgbEndDate(pMasterId int) (string, error) {
 	// return the indicator
 	var lIndicator string
 
+	lConfigFile := common.ReadTomlConfig("toml/SgbConfig.toml")
+	lCloseTime := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["SGB_CloseTime"])
+
 	// To Establish A database connection,call LocalDbConnect Method
 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
 	if lErr1 != nil {
@@ -191,7 +196,7 @@ func CheckSgbEndDate(pMasterId int) (string, error) {
 		return lIndicator, lErr1
 	} else {
 		defer lDb.Close()
-		lCoreString := `select (case when count(1) > 0 then m.id else 0 end) id ,(case when m.DailyEndTime > '15:30:00' then 'T' else 'F' end) flag
+		lCoreString := `select (case when count(1) > 0 then m.id else 0 end) id ,(case when m.DailyEndTime > '` + lCloseTime + `' then 'T' else 'F' end) flag
 						from a_sgb_master m
 						where m.BiddingEndDate = date(now())
 						and m.id = ?`

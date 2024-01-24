@@ -2,6 +2,7 @@ package ncblocaldetails
 
 import (
 	"encoding/json"
+	"fcs23pkg/apps/Ipo/brokers"
 	"fcs23pkg/apps/validation/apiaccess"
 	"fcs23pkg/common"
 	"fcs23pkg/ftdb"
@@ -13,18 +14,22 @@ import (
 )
 
 type NcbModifyStruct struct {
-	Id            int     `json:"id"`
-	Symbol        string  `json:"name"`
-	ActivityType  string  `json:"activityType"`
-	Flag          string  `json:"flag"`
-	OrderNo       int     `json:"orderNo"`
-	ApplicationNo string  `json:"applicationNo"`
-	LotSize       int     `json:"lotSize"`
-	Unit          int     `json:"unit"`
-	Price         float64 `json:"price"`
+	Id            int    `json:"id"`
+	Symbol        string `json:"symbol"`
+	Flag          string `json:"flag"`
+	OrderNo       int    `json:"orderNo"`
+	ApplicationNo string `json:"applicationNo"`
+	LotSize       int    `json:"lotSize"`
+	Isin          string `json:"isin"`
+	Unit          int    `json:"unit"`
+	Price         int    `json:"price"`
+	Amount        int    `json:"amount"`
+	DateTime      string `json:"dateTime"`
+	Total         int    `json:"total"`
+	RespOrderNo   string `json:"respOrderNo"`
 }
 
-// Response Structure for GetSgbMaster API
+// Response Structure for GetNcbMaster API
 type NcbModifyResp struct {
 	NcbModify NcbModifyStruct `json:"NcbModify"`
 	Status    string          `json:"status"`
@@ -42,7 +47,15 @@ Response:
 *On Sucess
 =========
 
-
+lRespRec : {
+	         "NcbModify":
+		            {
+                      	"id": 18,
+			            "orderNo": "20230822",
+			            unit": "2023-06-30",
+			            "price": "1000 - 2000",
+		            },
+            }
 
 !On Error
 ========
@@ -59,10 +72,13 @@ Date: 21OCT2023
 func GetNcbModifyDetail(w http.ResponseWriter, r *http.Request) {
 	log.Println("GetNcbModifyDetail(+)", r.Method)
 	origin := r.Header.Get("Origin")
+	var lBrokerId int
+	var lErr error
 	for _, allowedOrigin := range common.ABHIAllowOrigin {
 		if allowedOrigin == origin {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			log.Println(origin)
+			lBrokerId, lErr = brokers.GetBrokerId(origin) // TO get brokerId
+			log.Println(lErr, origin)
 			break
 		}
 	}
@@ -97,11 +113,11 @@ func GetNcbModifyDetail(w http.ResponseWriter, r *http.Request) {
 		}
 		//-----------END OF GETTING CLIENT AND STAFF DETAILS----------------
 		lConvId, _ := strconv.Atoi(lMasterId)
-
 		lIdOrder, _ := strconv.Atoi(lOrderNo)
 
-		log.Println("lClientId", lClientId)
-		lRespStruct, lErr2 := GetModifyDetails(lClientId, lConvId, lIdOrder)
+		log.Println("Id,Orderno", lIdOrder, lConvId)
+
+		lRespStruct, lErr2 := GetModifyDetails(lClientId, lConvId, lIdOrder, lBrokerId)
 		if lErr2 != nil {
 			log.Println("NLGNMD03", lErr2)
 			lRespRec.Status = common.ErrorCode
@@ -110,7 +126,6 @@ func GetNcbModifyDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			lRespRec.NcbModify = lRespStruct
-			log.Println("lRespRec", lRespRec.NcbModify)
 		}
 
 		// Marshal the Response Structure into lData
@@ -134,6 +149,8 @@ Response:
 ==========
 *On Sucess
 ==========
+lNcbModifyRec :
+           {2 AP20492402 N N 0 FT032287164628 100 1000000 1.05e+08}
 
 ==========
 !On Error
@@ -143,16 +160,12 @@ Response:
 Author:KAVYADHARSHANI
 Date: 21OCT2023
 */
-func GetModifyDetails(pClientId string, pMasterId int, lOrderNo int) (NcbModifyStruct, error) {
+func GetModifyDetails(pClientId string, pMasterId int, pOrderNo int, pBrokerId int) (NcbModifyStruct, error) {
 	log.Println("GetModifyDetails (+)")
 
-	// var lAmount float64
-
-	// var lLotSize, lUnit int
-	// var lPrice int
-
-	// var lOrderNo sql.NullInt64
 	var lNcbModifyRec NcbModifyStruct
+
+	// lOrderNo = lNcbModifyRec.OrderNo
 
 	// Calling LocalDbConect method in ftdb to estabish the database connection
 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
@@ -162,43 +175,47 @@ func GetModifyDetails(pClientId string, pMasterId int, lOrderNo int) (NcbModifyS
 	} else {
 		defer lDb.Close()
 
-		// 		lCoreString := `select h.MasterId,d.OrderNo	, d.price , d.activityType flag, d.Unit
-		// 		from a_ncb_master n, a_ncb_orderdetails d, a_ncb_orderheader h
-		// 		where n.id = h.MasterId
-		// 		and h.Id  = d.headerId
-		// 		and d.status <> 'failed' and h.cancelFlag = 'N' and d.activityType <> 'cancel'
-		// and h.clientId = ? and h.MasterId = ?`
-		// and d.OrderNo = ?
-		lCoreString := `select h.MasterId	, d.price , d.activityType flag, CAST((h.Investmentunit /n.Lotsize) AS SIGNED) Lotsize, d.unit unit, h.Symbol,h.cancelFlag flag, h.applicationNo 
-		from a_ncb_master n, a_ncb_orderdetails d, a_ncb_orderheader h	
-		where h.id = d.headerId 
-		and n.id  = h.MasterId 
-		and d.status <> 'failed' and h.cancelFlag <> 'Y'
-             and h.clientId = ? and h.MasterId = ? and d.OrderNo = ?`
+		lCoreString := `select h.Id,n.Symbol,d.ReqOrderNo ,d.ReqUnit  ,d.Reqprice,d.ReqAmount, n.Isin isin,
+		                       CONCAT( case 
+								 WHEN DAY(n.BiddingEndDate) % 10 = 1 AND DAY(n.BiddingEndDate) % 100 <> 11 THEN CONCAT(DAY(n.BiddingEndDate), 'st')
+			                     WHEN DAY(n.BiddingEndDate) % 10 = 2 AND DAY(n.BiddingEndDate) % 100 <> 12 THEN CONCAT(DAY(n.BiddingEndDate), 'nd')
+			                     WHEN DAY(n.BiddingEndDate) % 10 = 3 AND DAY(n.BiddingEndDate) % 100 <> 13 THEN CONCAT(DAY(n.BiddingEndDate), 'rd')
+			                     ELSE CONCAT(DAY(n.BiddingEndDate), 'th')
+			                     end,' ',
+			                     DATE_FORMAT(n.BiddingEndDate, '%b %Y'),' | ',
+			                  TIME_FORMAT(n.DailyEndTime , '%h:%i%p')) AS formatted_datetime, d.RespOrderNo  
+                        from a_ncb_master n, a_ncb_orderdetails d, a_ncb_orderheader h
+                        where h.Id = d.HeaderId 
+                        and n.Id = h.MasterId
+                        and h.MasterId  = ?
+                        and d.ReqOrderNo = ?
+                        and h.brokerId  = ?`
 
 		log.Println("pClientId", pClientId, pMasterId, "pMasterId")
-		lRows, lErr2 := lDb.Query(lCoreString, pClientId, pMasterId, lOrderNo)
+		lRows, lErr2 := lDb.Query(lCoreString, pMasterId, pOrderNo, pBrokerId)
 		if lErr2 != nil {
 			log.Println("LMGD02", lErr2)
 			return lNcbModifyRec, lErr2
 		} else {
 			//This for loop is used to collect the records from the database and store them in ModifyRespStruct
 			for lRows.Next() {
-				lErr3 := lRows.Scan(&lNcbModifyRec.Id, &lNcbModifyRec.Price, &lNcbModifyRec.ActivityType, &lNcbModifyRec.LotSize, &lNcbModifyRec.Unit, &lNcbModifyRec.Symbol, &lNcbModifyRec.Flag, &lNcbModifyRec.ApplicationNo)
+				lErr3 := lRows.Scan(&lNcbModifyRec.Id, &lNcbModifyRec.Symbol, &lNcbModifyRec.OrderNo, &lNcbModifyRec.Unit, &lNcbModifyRec.Price, &lNcbModifyRec.Amount, &lNcbModifyRec.Isin, &lNcbModifyRec.DateTime, &lNcbModifyRec.RespOrderNo)
 
 				if lErr3 != nil {
 					log.Println("LMGD03", lErr3)
 					return lNcbModifyRec, lErr3
-				} else {
-					// if lOrderNo.Valid {
-					// 	lNcbModifyRec.OrderNo = int(lOrderNo.Int64)
-					// } else {
-
-					// 	lNcbModifyRec.OrderNo = 0
-					// }
 				}
+
+				// if lOrderNo.Valid {
+				// 	lNcbModifyRec.OrderNo = int(lOrderNo.Int64)
+				// } else {
+
+				// 	lNcbModifyRec.OrderNo = 0
+				// }
+				lNcbModifyRec.Total = lNcbModifyRec.Unit * lNcbModifyRec.Price
+
 			}
-			log.Println("lOrderNo", lOrderNo, lNcbModifyRec.OrderNo)
+			log.Println("lOrderNo", pOrderNo, lNcbModifyRec.OrderNo)
 			log.Println("lNcbModifyRec", lNcbModifyRec)
 		}
 	}

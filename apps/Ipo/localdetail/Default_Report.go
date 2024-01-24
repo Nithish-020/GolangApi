@@ -3,6 +3,7 @@ package localdetail
 import (
 	"encoding/json"
 	"fcs23pkg/apps/Ipo/brokers"
+	"fcs23pkg/apps/SGB/localdetails"
 	"fcs23pkg/apps/validation/apiaccess"
 	"fcs23pkg/common"
 	"fcs23pkg/ftdb"
@@ -124,8 +125,9 @@ func DefaultReport(w http.ResponseWriter, r *http.Request) {
 func GetReportDefault(pBrokerId int) (RespStruct, error) {
 	log.Println("GetReportDefault (+)")
 
-	var lIpoRec, lSgbRec ReportRespStruct
+	var lIpoRec ReportRespStruct
 	var lDRespRec RespStruct
+	var lReportRec localdetails.ReportReqStruct
 
 	lDRespRec.Status = common.SuccessCode
 
@@ -167,30 +169,43 @@ func GetReportDefault(pBrokerId int) (RespStruct, error) {
 			// and concat (date(now()), ' 23:59:59.000')
 			// and oh.brokerId = ?`
 
-			lCoreString2 := `select oh.MasterId,m.Symbol ,od.RespOrderNo,nvl(DATE_FORMAT(oh.CreatedDate , '%d-%b-%Y'),'') applyDate,
-			nvl(TIME_FORMAT(oh.CreatedDate, '%h:%i:%s %p'),'') applytime,
-			(case when oh.cancelFlag = 'Y' then 'user cancelled' else nvl(oh.status ,'') end) flag,oh.clientId,nvl(oh.exchange,'')
-			from a_sgb_orderheader oh ,a_sgb_orderdetails od ,a_sgb_master m 
-			where m.id = oh.MasterId and od.HeaderId =oh.Id 
-			and od.CreatedDate between concat (date(now()), ' 00:00:00.000') 
-			and concat (date(now()), ' 23:59:59.000')
-			and oh.brokerId = ?`
-			lRows2, lErr4 := lDb.Query(lCoreString2, pBrokerId)
-			if lErr4 != nil {
-				log.Println("LGRD04", lErr4)
-				return lDRespRec, lErr4
+			lSgbOrderHistoryResp, lErr2 := localdetails.GetSGBOrderHistorydetail("", pBrokerId, lReportRec, "getDefaultReport")
+			if lErr2 != nil {
+				log.Println("LGRD04", lErr2)
+				lDRespRec.Status = common.ErrorCode
+				lDRespRec.ErrMsg = "LGRD04" + lErr2.Error()
+				return lDRespRec, lErr2
 			} else {
-				//Reading the Records
-				for lRows2.Next() {
-					lErr5 := lRows2.Scan(&lSgbRec.MasterId, &lSgbRec.Symbol, &lSgbRec.ApplicationNo, &lSgbRec.ApplyDate, &lSgbRec.AppliedTime, &lSgbRec.Status, &lSgbRec.ClientId, &lSgbRec.Exchange)
-					if lErr5 != nil {
-						log.Println("LGRD05", lErr5)
-						return lDRespRec, lErr5
-					} else {
-						lDRespRec.SgbArr = append(lDRespRec.SgbArr, lSgbRec)
-					}
-				}
+				lDRespRec.SgbArr = lSgbOrderHistoryResp.SgbOrderHistoryArr
 			}
+
+			// lCoreString2 := `select oh.MasterId,m.Symbol ,od.ReqOrderNo,nvl(DATE_FORMAT(oh.CreatedDate , '%d-%b-%Y'),'') applyDate,
+			// nvl(TIME_FORMAT(oh.CreatedDate, '%h:%i:%s %p'),'') applytime,
+			// (case when oh.cancelFlag = 'Y' then 'user cancelled' else nvl(oh.status ,'') end) flag,oh.clientId,nvl(oh.exchange,''),nvl(od.RespOrderNo,'')
+			// from a_sgb_orderheader oh ,a_sgb_orderdetails od ,a_sgb_master m
+			// where m.id = oh.MasterId and od.HeaderId =oh.Id
+			// and od.CreatedDate between concat (date(now()), ' 00:00:00.000')
+			// and concat (date(now()), ' 23:59:59.000')
+			// and oh.brokerId = ?`
+			// lRows2, lErr4 := lDb.Query(lCoreString2, pBrokerId)
+			// if lErr4 != nil {
+			// 	log.Println("LGRD04", lErr4)
+			// 	return lDRespRec, lErr4
+			// } else {
+			// 	//Reading the Records
+			// 	for lRows2.Next() {
+			// 		// lErr5 := lRows2.Scan(&lSgbRec.MasterId, &lSgbRec.Symbol, &lSgbRec.ApplicationNo, &lSgbRec.ApplyDate, &lSgbRec.AppliedTime, &lSgbRec.Status, &lSgbRec.ClientId, &lSgbRec.Exchange, &lSgbRec.ExchOrderNo)
+
+			// 		lErr5 := lRows2.Scan(&lSgbRec.Id, &lSgbRec.Symbol, &lSgbRec.OrderNo, &lSgbRec.DateRange, &lSgbRec.StartDateWithTime, &lSgbRec.OrderStatus, &lSgbRec.ClientId, &lSgbRec.Exchange, &lSgbRec.ExchOrderNo)
+			// 		if lErr5 != nil {
+			// 			log.Println("LGRD05", lErr5)
+			// 			return lDRespRec, lErr5
+			// 		} else {
+			// 			lDRespRec.SgbArr2 = append(lDRespRec.SgbArr2, lSgbRec)
+			// }
+			// }
+			// }
+			// log.Println("sgb", lDRespRec.SgbArr2)
 		}
 	}
 	log.Println("GetReportDefault (-)")

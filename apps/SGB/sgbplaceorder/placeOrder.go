@@ -6,6 +6,7 @@ import (
 	"fcs23pkg/apps/SGB/validatesgb"
 	"fcs23pkg/apps/abhilogin"
 	"fcs23pkg/apps/clientDetail"
+	"fcs23pkg/apps/exchangecall"
 	"fcs23pkg/apps/validation/adminaccess"
 	"fcs23pkg/apps/validation/apiaccess"
 	"fcs23pkg/common"
@@ -32,6 +33,8 @@ type SgbReqStruct struct {
 	OrderNo    string `json:"orderNo"`
 	Amount     int    `json:"amount"`
 	PreApply   string `json:"preApply"`
+	SIText     string `json:"SItext"`
+	SIValue    bool   `json:"SIvalue"`
 }
 
 type SgbClientDetail struct {
@@ -104,7 +107,9 @@ func SgbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	// lBrokerId := 4
 	log.Println("lBrokerId", lBrokerId)
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	(w).Header().Set("Access-Control-Allow-Credentials", "true")
 	(w).Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	(w).Header().Set("Access-Control-Allow-Headers", "Accept,Content-Type,Content-Length,Accept-Encoding,X-CSRF-Token,Authorization")
@@ -118,138 +123,186 @@ func SgbPlaceOrder(w http.ResponseWriter, r *http.Request) {
 		//
 		lRespRec.Status = common.SuccessCode
 
-		lExchange, lErr1 := adminaccess.SGBFetchDirectory(lBrokerId)
-		// lExchange, lErr1 := memberdetail.BseNsePercentCalc(lBrokerId, "/sgb")
+		// lRespRec.Status = common.SuccessCode
+		// var lErrorRec error
+		// var lFlag string
+		// var lExchangeResp bsesgb.SgbRespStruct
+		lConfigFile := common.ReadTomlConfig("toml/SgbConfig.toml")
+		lProcessingMode := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["SGB_Immediate_Flag"])
+
+		//-----------START TO GETTING CLIENT AND STAFF DETAILS--------------
+
+		lClientId, lErr1 := apiaccess.VerifyApiAccess(r, common.ABHIAppName, common.ABHICookieName, "/sgb")
 		if lErr1 != nil {
+			log.Println("SGBPO01", lErr1.Error())
 			lRespRec.Status = common.ErrorCode
 			lRespRec.ErrMsg = "SGBPO01" + lErr1.Error()
-			fmt.Fprintf(w, helpers.GetErrorString("SGBPO01", "Directory Not Found. Please try after sometime"))
+			fmt.Fprintf(w, helpers.GetErrorString("SGBPO01", "UserDetails not Found"))
 			return
 		} else {
-			lRespRec.Status = common.SuccessCode
-			// var lErrorRec error
-			// var lFlag string
-			// var lExchangeResp bsesgb.SgbRespStruct
-
-			//-----------START TO GETTING CLIENT AND STAFF DETAILS--------------
-
-			lClientId, lErr2 := apiaccess.VerifyApiAccess(r, common.ABHIAppName, common.ABHICookieName, "/sgb")
-			if lErr2 != nil {
+			if lClientId == "" {
+				lErr2 := common.CustomError("UserDetails not Found")
+				log.Println("SGBPO02", lErr2.Error())
 				lRespRec.Status = common.ErrorCode
 				lRespRec.ErrMsg = "SGBPO02" + lErr2.Error()
 				fmt.Fprintf(w, helpers.GetErrorString("SGBPO02", "UserDetails not Found"))
 				return
-			} else {
-				if lClientId == "" {
-					lRespRec.Status = common.ErrorCode
-					fmt.Fprintf(w, helpers.GetErrorString("SGBPO03", "UserDetails not Found"))
-					return
-				}
 			}
-			//added by naveen:to fetch the source (from where mobile or web)by cookie name
-			source, lErr3 := abhilogin.GetSourceOfUser(r, common.ABHICookieName)
-			if lErr3 != nil {
-				lRespRec.Status = common.ErrorCode
-				lRespRec.ErrMsg = "SGBPO04" + lErr3.Error()
-				fmt.Fprintf(w, helpers.GetErrorString("SGBPO04", "Unable to get source"))
-				return
-			}
-			log.Println("source in api", source)
+		}
+		//added by naveen:to fetch the source (from where mobile or web)by cookie name
+		source, lErr3 := abhilogin.GetSourceOfUser(r, common.ABHICookieName)
+		if lErr3 != nil {
+			log.Println("SGBPO03", lErr3.Error())
+			lRespRec.Status = common.ErrorCode
+			lRespRec.ErrMsg = "SGBPO03" + lErr3.Error()
+			fmt.Fprintf(w, helpers.GetErrorString("SGBPO03", "Unable to get source"))
+			return
+		} else {
 
 			//-----------END OF GETTING CLIENT AND STAFF DETAILS----------------
 			// Read the request body values in lBody variable
 			lBody, lErr4 := ioutil.ReadAll(r.Body)
 			if lErr4 != nil {
-				log.Println("SGBPO05", lErr4.Error())
+				log.Println("SGBPO04", lErr4.Error())
 				lRespRec.Status = common.ErrorCode
-				fmt.Fprintf(w, helpers.GetErrorString("SGBPO05", "Unable to get your request now!!Try Again.."))
+				fmt.Fprintf(w, helpers.GetErrorString("SGBPO04", "Unable to get your request now!!Try Again.."))
 				return
 			} else {
+				// log.Println("lBody", string(lBody))
 				// Unmarshal the request body values in lReqRec variable
 				lErr5 := json.Unmarshal(lBody, &lReqRec)
 				if lErr5 != nil {
-					log.Println("SGBPO06", lErr5.Error())
+					log.Println("SGBPO05", lErr5.Error())
 					lRespRec.Status = common.ErrorCode
-					fmt.Fprintf(w, helpers.GetErrorString("SGBPO06", "Unable to get your request now. Please try after sometime"))
+					fmt.Fprintf(w, helpers.GetErrorString("SGBPO05", "Unable to get your request now. Please try after sometime"))
 					return
 				} else {
-					log.Println("lReqRec", lReqRec)
-					lTimeToApply, lErr6 := TimeToAcceptOrder(lReqRec)
-					if lErr6 != nil {
-						log.Println("SGBPO07", lErr6.Error())
+
+					// This method checks the order is eligible to accept of not
+					// based on specific condition written inside
+					lAcceptOrder, lErrMsg, lMasterId, lErr7 := AcceptClientToOrder(lReqRec, lClientId, lBrokerId)
+					if lErr7 != nil {
+						log.Println("SGBPO07", lErr7.Error())
 						lRespRec.Status = common.ErrorCode
 						fmt.Fprintf(w, helpers.GetErrorString("SGBPO07", "Unable to Accept your Order. Please try after sometime"))
 						return
 					} else {
-						log.Println("lTimeToApply", lTimeToApply)
-						if lTimeToApply == "Y" {
-							lRespRec.Status = common.ErrorCode
-							fmt.Fprintf(w, helpers.GetErrorString("SGBPO08", "Bond Closed,No More Orders are Acceptable"))
-							return
-						} else if lTimeToApply == "N" {
 
-							//this method is used to construct the Req struct for exchange
-							lExchangeReq, lErr7 := ConstructSGBReqStruct(lReqRec, lClientId)
-							if lErr7 != nil {
-								log.Println("SGBPO09", lErr7.Error())
+						if lAcceptOrder == true {
+
+							lTimeToApply, lErr8 := TimeToAcceptOrder(lMasterId)
+							if lErr8 != nil {
+								log.Println("SGBPO08", lErr8.Error())
 								lRespRec.Status = common.ErrorCode
-								fmt.Fprintf(w, helpers.GetErrorString("SGBPO09", "Unable to process your request now. Please try after sometime"))
+								fmt.Fprintf(w, helpers.GetErrorString("SGBPO08", "Unable to Accept your Order. Please try after sometime"))
 								return
 							} else {
-								log.Println(lExchangeReq)
-								// log.Println(lReqRec.MasterId, "lReqRec.MasterId")
-								lTodayAvailable, lErr8 := validatesgb.CheckSgbEndDate(lReqRec.MasterId)
-								if lErr8 != nil {
-									log.Println("SGBPO010", lErr8.Error())
+								log.Println("lTimeToApply", lTimeToApply)
+
+								if lTimeToApply == "Y" {
 									lRespRec.Status = common.ErrorCode
-									fmt.Fprintf(w, helpers.GetErrorString("SGBPO010", "Unable to process your request now. Please try after sometime"))
+									fmt.Fprintf(w, helpers.GetErrorString("SGBPO08", "Bond Closed,No More Orders are Acceptable"))
 									return
-								} else {
+								} else if lTimeToApply == "N" {
 
-									// check the symbol is available or not
-									if lTodayAvailable == "True" {
-
-										//added by naveen:add one additional parameter source to insert in sgb orderheader
-										//lErr8 := UpdateToLocal(lReqRec, lExchangeReq, lClientId, lExchange, lBrokerId, r)
-										lErr9 := UpdateToLocal(lReqRec, lExchangeReq, lClientId, lExchange, lBrokerId, r, source)
-										if lErr9 != nil {
-											log.Println("SGBPO11", lErr9.Error())
-											lRespRec.Status = common.ErrorCode
-											fmt.Fprintf(w, helpers.GetErrorString("SGBPO11", "Unable to process your request now. Please try after sometime"))
-											return
-										} else {
-											if lReqRec.ActionCode == "N" {
-												lRespRec.OrderStatus = "Order Placed Successfully"
-												lRespRec.Status = common.SuccessCode
-											} else if lReqRec.ActionCode == "M" {
-												lRespRec.OrderStatus = "Order Modified Successfully"
-												lRespRec.Status = common.SuccessCode
-											} else if lReqRec.ActionCode == "D" {
-												lRespRec.OrderStatus = "Order Deleted Successfully"
-												lRespRec.Status = common.SuccessCode
-											}
-										}
-									} else if lTodayAvailable == "False" {
+									lTodayAvailable, lErr9 := validatesgb.CheckSgbEndDate(lReqRec.MasterId)
+									if lErr9 != nil {
+										log.Println("SGBPO09", lErr9.Error())
 										lRespRec.Status = common.ErrorCode
-										lRespRec.ErrMsg = "Bond Closed,No More Orders are Acceptable"
-										log.Println("Bond Closed,No More Orders are Acceptable")
+										fmt.Fprintf(w, helpers.GetErrorString("SGBPO09", "Unable to process your request now. Please try after sometime"))
+										return
 									} else {
-										lRespRec.Status = common.ErrorCode
-										lRespRec.ErrMsg = "Timing closed for Soverign Gold Bond"
-										log.Println("Timing closed for Soverign Gold Bond")
+
+										// log.Println(lExchangeReq)
+										// log.Println(lReqRec.MasterId, "lReqRec.MasterId")
+
+										// check the symbol is available or not
+										if lTodayAvailable == "True" {
+											// if (lReqRec.SIValue == true && lProcessingMode == "L") ||
+											// 	(lReqRec.SIValue == false && lProcessingMode == "I") {
+
+											//this method is used to construct the Req struct for exchange
+											lExchangeReq, lEmailId, lErr10 := ConstructSGBReqStruct(lReqRec, lClientId)
+											if lErr10 != nil {
+												log.Println("SGBPO10", lErr10.Error())
+												lRespRec.Status = common.ErrorCode
+												lRespRec.ErrMsg = lErr10.Error()
+												fmt.Fprintf(w, helpers.GetErrorString("SGBPO10", "Unable to process your request now. Please try after sometime"))
+												return
+											} else {
+
+												lExchange, lErr11 := adminaccess.SGBFetchDirectory(lBrokerId)
+												// lExchange, lErr1 := memberdetail.BseNsePercentCalc(lBrokerId, "/sgb")
+												if lErr11 != nil {
+													lRespRec.Status = common.ErrorCode
+													lRespRec.ErrMsg = "SGBPO11" + lErr11.Error()
+													fmt.Fprintf(w, helpers.GetErrorString("SGBPO11", "Directory Not Found. Please try after sometime"))
+													return
+												} else {
+													if lProcessingMode != "I" {
+
+														//added by naveen:add one additional parameter source to insert in sgb orderheader
+														//lErr8 := UpdateToLocal(lReqRec, lExchangeReq, lClientId, lExchange, lBrokerId, r,source)
+														lErr12 := UpdateToLocal(lReqRec, lExchangeReq, lClientId, lExchange, lBrokerId, r, source, lEmailId)
+														if lErr12 != nil {
+															log.Println("SGBPO12", lErr12.Error())
+															lRespRec.Status = common.ErrorCode
+															fmt.Fprintf(w, helpers.GetErrorString("SGBPO12", "Unable to process your request now. Please try after sometime"))
+															return
+														} else {
+															if lReqRec.ActionCode == "N" {
+																lRespRec.OrderStatus = "Order Placed Successfully"
+																lRespRec.Status = common.SuccessCode
+															} else if lReqRec.ActionCode == "M" {
+																lRespRec.OrderStatus = "Order Modified Successfully"
+																lRespRec.Status = common.SuccessCode
+															} else if lReqRec.ActionCode == "D" {
+																lRespRec.OrderStatus = "Order Deleted Successfully"
+																lRespRec.Status = common.SuccessCode
+															}
+														}
+													} else {
+														lRespRec.Status = common.ErrorCode
+														lRespRec.ErrMsg = "Immediate order cannot be processed"
+														// fmt.Fprintf(w, helpers.GetErrorString("SGBPO11", "Immediate order cannot be processed"))
+														// return
+													}
+												}
+											}
+											// } else {
+											// 	lRespRec.Status = common.ErrorCode
+											// 	lRespRec.ErrMsg = "Your request cannot be processed. Please accept the policy before submitting one."
+											// 	log.Println("Your request cannot be processed. Please accept the policy before submitting one.")
+											// }
+										} else if lTodayAvailable == "False" {
+											lRespRec.Status = common.ErrorCode
+											lRespRec.ErrMsg = "Bond Closed,No More Orders are Acceptable"
+											log.Println("Bond Closed,No More Orders are Acceptable")
+										} else {
+											lRespRec.Status = common.ErrorCode
+											lRespRec.ErrMsg = "Timing closed for Soverign Gold Bond"
+											log.Println("Timing closed for Soverign Gold Bond")
+										}
 									}
+								} else {
+									lRespRec.Status = common.ErrorCode
+									lRespRec.ErrMsg = "Unable to process the request,Scrip is unavailable"
 								}
 							}
+						} else {
+							lRespRec.Status = common.ErrorCode
+							lRespRec.ErrMsg = lErrMsg
+							log.Println("lErrMsg", lErrMsg)
 						}
-
 					}
+
 				}
 			}
 		}
-		lData, lErr10 := json.Marshal(lRespRec)
-		if lErr10 != nil {
-			log.Println("SGBPO12", lErr10)
-			fmt.Fprintf(w, helpers.GetErrorString("SGBPO12", "Unable to getting response.."))
+		lData, lErr13 := json.Marshal(lRespRec)
+		if lErr13 != nil {
+			log.Println("SGBPO13", lErr13)
+			fmt.Fprintf(w, helpers.GetErrorString("SGBPO13", "Unable to getting response.."))
 			return
 		} else {
 			fmt.Fprintf(w, string(lData))
@@ -381,7 +434,9 @@ Response:
 Author:Pavithra
 Date: 12JUNE2023
 */
-func ConstructSGBReqStruct(pReqRec SgbReqStruct, pClientId string) (bsesgb.SgbReqStruct, error) {
+// func ConstructSGBReqStruct(pReqRec SgbReqStruct, pClientId string) (bsesgb.SgbReqStruct, error) {
+func ConstructSGBReqStruct(pReqRec SgbReqStruct, pClientId string) (bsesgb.SgbReqStruct, string, error) {
+
 	log.Println("ConstructSGBReqStruct (+)")
 
 	// create an instance of lReqRec type bsesgb.SgbReqStruct.
@@ -390,25 +445,45 @@ func ConstructSGBReqStruct(pReqRec SgbReqStruct, pClientId string) (bsesgb.SgbRe
 	// create an instance of lReqRec type bsesgb.SgbReqStruct.
 	var lBidReqRec bsesgb.ReqSgbBidStruct
 
+	//emailId of The client
+	var lEmailId string
+
 	// call the getDpId method to get the lDpId and lClientName
-	lDpId, lClientName, lErr := getDpId(pClientId)
+	lClientdetails, lErr := clientDetail.GetClientEmailId(pClientId)
 	if lErr != nil {
 		log.Println("SPCSRS01", lErr)
-		return lReqRec, lErr
+		return lReqRec, lEmailId, lErr
+	} else {
+		lEmailId = lClientdetails.EmailId
+		if lClientdetails.Pan_no != "" {
+			lReqRec.PanNo = lClientdetails.Pan_no
+		} else {
+			return lReqRec, lEmailId, common.CustomError("Client PAN No not found")
+		}
+		if lClientdetails.Client_dp_name != "" {
+			lReqRec.ApplicantName = lClientdetails.Client_dp_name
+		} else {
+			return lReqRec, lEmailId, common.CustomError("Client Name not found")
+		}
+		if lClientdetails.Client_dp_code != "" {
+			lReqRec.ClientBenfId = lClientdetails.Client_dp_code
+		} else {
+			return lReqRec, lEmailId, common.CustomError("Client DP ID not found")
+		}
 	}
 
 	// call the getPanNO method to get the lPanNo
-	lPanNo, lErr := getPanNO(pClientId)
-	if lErr != nil {
-		log.Println("SPCSRS02", lErr)
-		return lReqRec, lErr
-	}
+	// lPanNo, lErr := getPanNO(pClientId)
+	// if lErr != nil {
+	// 	log.Println("SPCSRS02", lErr)
+	// 	return lReqRec, lErr
+	// }
 
 	// call the getApplication method to get the lAppNo
 	lSymbol, lBidId, lOrderNo, lErr := getSGBApplication(pReqRec, pClientId)
 	if lErr != nil {
-		log.Println("SPCSRS03", lErr)
-		return lReqRec, lErr
+		log.Println("SPCSRS02", lErr)
+		return lReqRec, lEmailId, lErr
 	} else {
 		// If lAppNo is nil,generate new application no or else pass the lAppNo
 		if lOrderNo == "0" {
@@ -420,20 +495,46 @@ func ConstructSGBReqStruct(pReqRec SgbReqStruct, pClientId string) (bsesgb.SgbRe
 				lTrimmedString = pClientId[len(pClientId)-5:]
 			}
 			lBidReqRec.OrderNo = lUnixTimeString + lTrimmedString
-			lBidReqRec.BidId = strconv.Itoa(common.GetRandomNumber())
+			// lBidReqRec.BidId = strconv.Itoa(common.GetRandomNumber())
+
+			lRandomString, lErr1 := exchangecall.GetSGB_SequenceNo()
+			if lErr1 != nil {
+				log.Println("SPCSRS03", lErr1)
+				return lReqRec, lEmailId, lErr
+			} else {
+				lBidReqRec.BidId = strconv.Itoa(lRandomString)
+			}
 		} else {
 			lBidReqRec.OrderNo = pReqRec.OrderNo
 			lBidReqRec.BidId = lBidId
+		}
+		if pReqRec.ActionCode == "N" {
+			var lTrimmedString string
+			lTime := time.Now()
+			lUnixTime := lTime.Unix()
+			lUnixTimeString := fmt.Sprintf("%d", lUnixTime)
+			if len(pClientId) >= 5 {
+				lTrimmedString = pClientId[len(pClientId)-5:]
+			}
+			lBidReqRec.OrderNo = lUnixTimeString + lTrimmedString
+			// lBidReqRec.BidId = strconv.Itoa(common.GetRandomNumber())
+			lRandomString, lErr1 := exchangecall.GetSGB_SequenceNo()
+			if lErr1 != nil {
+				log.Println("SPCSRS03", lErr1)
+				return lReqRec, lEmailId, lErr
+			} else {
+				lBidReqRec.BidId = strconv.Itoa(lRandomString)
+			}
 		}
 	}
 
 	lReqRec.ScripId = lSymbol
 	lReqRec.InvestorCategory = "CTZ"
-	lReqRec.PanNo = lPanNo
-	lReqRec.ApplicantName = lClientName
+	// lReqRec.PanNo = lClientdetails.Pan_no
+	// lReqRec.ApplicantName = lClientdetails.Client_dp_name
 	lReqRec.Depository = "CDSL"
 	lReqRec.DpId = "0"
-	lReqRec.ClientBenfId = lDpId
+	// lReqRec.ClientBenfId = lClientdetails.Client_dp_code
 	lReqRec.GuardianName = ""
 	lReqRec.GuardianPanno = ""
 	lReqRec.GuardianRelation = ""
@@ -446,7 +547,7 @@ func ConstructSGBReqStruct(pReqRec SgbReqStruct, pClientId string) (bsesgb.SgbRe
 	lReqRec.Bids = append(lReqRec.Bids, lBidReqRec)
 
 	log.Println("ConstructSGBReqStruct (-)")
-	return lReqRec, nil
+	return lReqRec, lEmailId, nil
 }
 
 /*
@@ -474,7 +575,7 @@ func getSGBApplication(pReqRec SgbReqStruct, pClientId string) (string, string, 
 	log.Println("getSGBApplication (+)")
 
 	// this variable is used to get the application no and reference no from the database
-	var lSymbol, lBidId, lOrderNo string
+	var lSymbol, lBidId, lOrderNo, lCoreString2 string
 
 	// To Establish A database connection,call LocalDbConnect Method
 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
@@ -483,14 +584,19 @@ func getSGBApplication(pReqRec SgbReqStruct, pClientId string) (string, string, 
 		return lSymbol, lBidId, lOrderNo, lErr1
 	} else {
 		defer lDb.Close()
-		lCoreString := `select nvl(m.Symbol,'') symbol,(case when count(1) > 0 then d.ReqOrderNo else 0 end) orderno,(case when count(1) > 0 then d.BidId else 0 end) bidid
+		lCoreString1 := `select nvl(m.Symbol,'') symbol,(case when count(1) > 0 then d.ReqOrderNo else 0 end) orderno,(case when count(1) > 0 then d.BidId else 0 end) bidid
 						from a_sgb_orderheader h,a_sgb_master m,a_sgb_orderdetails d
 						where m.id = h.MasterId 
 						and h.Id = d.HeaderId 
 						and h.ClientId = ?
-						and d.ReqOrderNo = ?		
-						and m.id = ?`
-		lRows, lErr2 := lDb.Query(lCoreString, pClientId, pReqRec.OrderNo, pReqRec.MasterId)
+						and d.ReqOrderNo = ?`
+
+		if pReqRec.ActionCode == "N" {
+			lCoreString2 = ` and m.id = ` + strconv.Itoa(pReqRec.MasterId)
+		}
+
+		lCoreString := lCoreString1 + lCoreString2
+		lRows, lErr2 := lDb.Query(lCoreString, pClientId, pReqRec.OrderNo)
 		if lErr2 != nil {
 			log.Println("PGSA02", lErr2)
 			return lSymbol, lBidId, lOrderNo, lErr2
@@ -504,7 +610,6 @@ func getSGBApplication(pReqRec SgbReqStruct, pClientId string) (string, string, 
 			}
 		}
 	}
-	log.Println("-----------------", lSymbol, lBidId, lOrderNo)
 	log.Println("getSGBApplication (-)")
 	return lSymbol, lBidId, lOrderNo, nil
 }
@@ -686,8 +791,8 @@ func InsertSgbBidTrack(pReqRec bsesgb.SgbReqStruct, pClientId string, pExchange 
 //-----------------------------------------------------------------------------
 
 // added by naveen:add one additional parameter pSource to insert in sgb orderheader
-// func UpdateToLocal(pReqRec SgbReqStruct, pExchangeReq bsesgb.SgbReqStruct, pClientId string, pExchange string, pBrokerId int, r *http.Request) error {
-func UpdateToLocal(pReqRec SgbReqStruct, pExchangeReq bsesgb.SgbReqStruct, pClientId string, pExchange string, pBrokerId int, r *http.Request, pSource string) error {
+// func UpdateToLocal(pReqRec SgbReqStruct, pExchangeReq bsesgb.SgbReqStruct, pClientId string, pExchange string, pBrokerId int, r *http.Request, pSource string) error {
+func UpdateToLocal(pReqRec SgbReqStruct, pExchangeReq bsesgb.SgbReqStruct, pClientId string, pExchange string, pBrokerId int, r *http.Request, pSource string, pEmailId string) error {
 	log.Println("UpdateToLocal (+)")
 
 	log.Println("source", pSource)
@@ -703,24 +808,22 @@ func UpdateToLocal(pReqRec SgbReqStruct, pExchangeReq bsesgb.SgbReqStruct, pClie
 		// This method is Not Providing Mail ID Because Client Data is not inserting on DB
 		// lClientEmail, lErr2 := clientDetail.GetClientEmailId(r, lClientId)
 		//  Temperory Alternate method to create here to Get an Client Mail ID
-		lClientEmail, lErr2 := clientDetail.GetClientEmailId(pClientId)
-		if lErr2 != nil {
-			log.Println("SPUTL02", lErr2.Error())
-			return lErr2
+		// lClientdetails, lErr2 := clientDetail.GetClientEmailId(pClientId)
+		// if lErr2 != nil {
+		// 	log.Println("SPUTL02", lErr2.Error())
+		// 	return lErr2
+		// } else {
+
+		// 	log.Println("lClientEmail", lClientdetails.EmailId)
+
+		//added by naveen:add one additonal argument pSource to insert in sgb orderheader
+		//lErr3 := InsertHeader(pReqRec, pExchangeReq, pClientId, lClientEmail, pExchange, pBrokerId)
+		lErr3 := InsertHeader(pReqRec, pExchangeReq, pClientId, pEmailId, pExchange, pBrokerId, pSource)
+		if lErr3 != nil {
+			log.Println("SPUTL03", lErr3.Error())
+			return lErr3
 		} else {
-
-			log.Println("lClientEmail", lClientEmail)
-
-			//added by naveen:add one additonal argument pSource to insert in sgb orderheader
-			//lErr3 := InsertHeader(pReqRec, pExchangeReq, pClientId, lClientEmail, pExchange, pBrokerId)
-			lErr3 := InsertHeader(pReqRec, pExchangeReq, pClientId, lClientEmail, pExchange, pBrokerId, pSource)
-			if lErr3 != nil {
-				log.Println("SPUTL03", lErr3.Error())
-				return lErr3
-			} else {
-				log.Println("Updated Successfully in DB")
-			}
-
+			log.Println("Updated Successfully in DB")
 		}
 	}
 	log.Println("UpdateToLocal (-)")
@@ -790,10 +893,10 @@ func InsertHeader(pRequest SgbReqStruct, pReqRec bsesgb.SgbReqStruct, pClientId 
 					Schstatus := "N"
 					lSqlString1 := `insert into a_sgb_orderheader (brokerId,MasterId ,ScripId,PanNo,InvestorCategory,ApplicantName,Depository,
 									DpId,ClientBenfId,GuardianName,GuardianPanNo,GuardianRelation,
-									Status,ClientId,cancelFlag,Exchange,source,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,ClientEmail,ProcessFlag,ScheduleStatus)
-									values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now(),?,now(),?,?,?)`
+									Status,ClientId,cancelFlag,Exchange,source,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,ClientEmail,ProcessFlag,ScheduleStatus,SItext,SIvalue)
+									values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now(),?,now(),?,?,?,?,?)`
 
-					lInsertedHeaderId, lErr3 := lDb.Exec(lSqlString1, pBrokerId, lHeaderId, pReqRec.ScripId, pReqRec.PanNo, pReqRec.InvestorCategory, pReqRec.ApplicantName, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenfId, pReqRec.GuardianName, pReqRec.GuardianPanno, pReqRec.GuardianRelation, common.SUCCESS, pClientId, lCancelFlag, pExchange, pSource, pClientId, pClientId, pEmailId, processFlag, Schstatus)
+					lInsertedHeaderId, lErr3 := lDb.Exec(lSqlString1, pBrokerId, lHeaderId, pReqRec.ScripId, pReqRec.PanNo, pReqRec.InvestorCategory, pReqRec.ApplicantName, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenfId, pReqRec.GuardianName, pReqRec.GuardianPanno, pReqRec.GuardianRelation, common.SUCCESS, pClientId, lCancelFlag, pExchange, pSource, pClientId, pClientId, pEmailId, processFlag, Schstatus, pRequest.SIText, pRequest.SIValue)
 					if lErr3 != nil {
 						log.Println("PIH03", lErr3)
 						return lErr3
@@ -818,13 +921,13 @@ func InsertHeader(pRequest SgbReqStruct, pReqRec bsesgb.SgbReqStruct, pClientId 
 									set h.ScripId = ?,h.PanNo = ?,h.InvestorCategory = ?,h.ApplicantName = ?,h.Depository = ?,h.DpId = ?,
 									h.ClientBenfId = ?,h.GuardianName = ?,h.GuardianPanNo = ?,
 									h.GuardianRelation = ?,h.Status = ?,h.ClientId = ?,h.cancelFlag = ?,
-									h.UpdatedBy = ?,h.UpdatedDate = now()
+									h.UpdatedBy = ?,h.UpdatedDate = now(),h.SItext = ?,h.SIvalue = ?
 									where h.Id = ?
 									and h.ClientId = ?
 									and h.Exchange = ?
 									and h.brokerId = ?`
 
-					_, lErr5 := lDb.Exec(lSqlString2, pReqRec.ScripId, pReqRec.PanNo, pReqRec.InvestorCategory, pReqRec.ApplicantName, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenfId, pReqRec.GuardianName, pReqRec.GuardianPanno, pReqRec.GuardianRelation, common.SUCCESS, pClientId, lCancelFlag, pClientId, lHeaderId, pClientId, pExchange, pBrokerId)
+					_, lErr5 := lDb.Exec(lSqlString2, pReqRec.ScripId, pReqRec.PanNo, pReqRec.InvestorCategory, pReqRec.ApplicantName, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenfId, pReqRec.GuardianName, pReqRec.GuardianPanno, pReqRec.GuardianRelation, common.SUCCESS, pClientId, lCancelFlag, pClientId, pRequest.SIText, pRequest.SIValue, lHeaderId, pClientId, pExchange, pBrokerId)
 					if lErr5 != nil {
 						log.Println("PIH05", lErr5)
 						return lErr5
@@ -844,13 +947,13 @@ func InsertHeader(pRequest SgbReqStruct, pReqRec bsesgb.SgbReqStruct, pClientId 
 								set h.ScripId = ?,h.PanNo = ?,h.InvestorCategory = ?,h.ApplicantName = ?,h.Depository = ?,h.DpId = ?,
 								h.ClientBenfId = ?,h.GuardianName = ?,h.GuardianPanNo = ?,h.GuardianRelation = ?,
 								h.Status = ?,h.ClientId = ?,h.cancelFlag = ?,
-								h.UpdatedBy = ?,h.UpdatedDate = now()
+								h.UpdatedBy = ?,h.UpdatedDate = now(),h.SItext = ?,h.SIvalue = ?
 								where h.Id = ?
 								and h.ClientId = ? 
 								and h.Exchange = ?
 								and h.brokerId = ?`
 
-					_, lErr5 := lDb.Exec(lSqlString3, pReqRec.ScripId, pReqRec.PanNo, pReqRec.InvestorCategory, pReqRec.ApplicantName, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenfId, pReqRec.GuardianName, pReqRec.GuardianPanno, pReqRec.GuardianRelation, common.SUCCESS, pClientId, lCancelFlag, pClientId, lHeaderId, pClientId, pExchange, pBrokerId)
+					_, lErr5 := lDb.Exec(lSqlString3, pReqRec.ScripId, pReqRec.PanNo, pReqRec.InvestorCategory, pReqRec.ApplicantName, pReqRec.Depository, pReqRec.DpId, pReqRec.ClientBenfId, pReqRec.GuardianName, pReqRec.GuardianPanno, pReqRec.GuardianRelation, common.SUCCESS, pClientId, lCancelFlag, pClientId, pRequest.SIText, pRequest.SIValue, lHeaderId, pClientId, pExchange, pBrokerId)
 					if lErr5 != nil {
 						log.Println("PIH07", lErr5)
 						return lErr5
@@ -973,9 +1076,13 @@ func InsertDetail(pRequest SgbReqStruct, pReqBidArr []bsesgb.ReqSgbBidStruct, pH
 }
 
 // this method is used to Accept the order Based on Time
-func TimeToAcceptOrder(ApplyReq SgbReqStruct) (string, error) {
+func TimeToAcceptOrder(pMasterId int) (string, error) {
 	log.Println("TimeToAcceptOrder (+)")
 	var lorderAcceptFlag string
+	log.Println("pMasterId", pMasterId)
+
+	lConfigFile := common.ReadTomlConfig("toml/SgbConfig.toml")
+	lCloseTime := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["SGB_CloseTime"])
 	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
 	if lErr1 != nil {
 		log.Println("SPTAO01", lErr1)
@@ -983,11 +1090,13 @@ func TimeToAcceptOrder(ApplyReq SgbReqStruct) (string, error) {
 	} else {
 		defer lDb.Close()
 
-		lCoreString2 := `select (case when( master.BiddingEndDate  = Date(now()) and Time(now()) > '15:30:00' )  then 'Y' else 'N'end ) as LastDay
-		from a_sgb_master master
-		where id = ?`
+		lCoreString2 := `select (case when( BiddingEndDate  = Date(now()) and Time(now()) > '` + lCloseTime + `' )  then 'Y' else 'N'end ) as LastDay
+		from a_sgb_master 
+		where BiddingStartDate <= curdate()
+		and BiddingEndDate >= curdate() 
+		and id = ?`
 
-		lRows1, lErr2 := lDb.Query(lCoreString2, ApplyReq.MasterId)
+		lRows1, lErr2 := lDb.Query(lCoreString2, pMasterId)
 		if lErr2 != nil {
 			log.Println("SPTAO02", lErr2)
 			return lorderAcceptFlag, lErr2

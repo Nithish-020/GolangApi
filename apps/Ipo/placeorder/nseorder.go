@@ -2,6 +2,7 @@ package placeorder
 
 import (
 	"fcs23pkg/common"
+	"fcs23pkg/ftdb"
 	"fcs23pkg/integration/nse/nseipo"
 	"log"
 )
@@ -54,4 +55,61 @@ func NsePlaceOrder(pExhangeReq []nseipo.ExchangeReqStruct, pReqRec OrderReqStruc
 	}
 	log.Println("NsePlaceOrder (-)")
 	return lRespRec, lResp, lError
+}
+
+func Ipo_EligibleToOrder(pRequest OrderReqStruct, pBrokerId int, pClientId string) (bool, error) {
+	log.Println("Ipo_EligibleToOrder (+)")
+
+	var lAllowToOrder bool
+	lString := ""
+	// To Establish A database connection,call LocalDbConnect Method
+	lDb, lErr1 := ftdb.LocalDbConnect(ftdb.IPODB)
+	if lErr1 != nil {
+		log.Println("PIETO01", lErr1)
+		return lAllowToOrder, lErr1
+	} else {
+		defer lDb.Close()
+
+		lCoreString := `select (case when count(1) > 0 then 'Y' else 'N' end)AllowFlag
+						from a_ipo_order_header h
+						where h.cancelFlag = 'N'
+						and h.status  = 'success'
+						and h.MasterId = ?
+						and h.clientId = ?
+						and h.category = ?
+						and h.brokerId = ?`
+
+		lRows, lErr2 := lDb.Query(lCoreString, pRequest.MasterId, pClientId, pRequest.Category, pBrokerId)
+		if lErr2 != nil {
+			log.Println("PIETO02", lErr2)
+			return lAllowToOrder, lErr2
+		} else {
+			for lRows.Next() {
+				lErr3 := lRows.Scan(&lString)
+				if lErr3 != nil {
+					log.Println("PIETO03", lErr3)
+					return lAllowToOrder, lErr3
+				} else {
+					for lIdx := 0; lIdx < len(pRequest.BidDetails); lIdx++ {
+						if pRequest.BidDetails[lIdx].ActivityType == "new" {
+							if lString == "N" {
+								lAllowToOrder = true
+							} else if lString == "Y" {
+								lAllowToOrder = false
+							}
+						} else if pRequest.BidDetails[lIdx].ActivityType == "modify" || pRequest.BidDetails[lIdx].ActivityType == "cancel" {
+							if lString == "Y" {
+								lAllowToOrder = true
+							} else {
+								lAllowToOrder = false
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	log.Println("Ipo_EligibleToOrder (-)")
+	return lAllowToOrder, nil
 }

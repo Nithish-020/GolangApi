@@ -1,4 +1,4 @@
-package apdb
+package ftdb
 
 import (
 	"database/sql"

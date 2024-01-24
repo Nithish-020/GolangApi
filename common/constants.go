@@ -1,12 +1,17 @@
 package common
 
+var (
+	ABHIDomain  = ""
+	ABHIAppName = ""
+)
+
 const (
 	//--------------WALL APPLICATION CONSTANTS ------------------------
 
 	//DEV
-	ABHIDomain = "localhost"
+	// ABHIDomain = "localhost"
 	// ABHIAllowOrigin = "http://localhost:8080"
-	ABHIAppName = "novodev"
+	// ABHIAppName = "novodev"
 
 	// ABHIDomain = "flattrade.in"
 	// ABHIAllowOrigin = "https://novo.flattrade.in"
@@ -34,11 +39,14 @@ const (
 	INSERT        = "INSERT"
 	UPDATE        = "UPDATE"
 	SUCCESS       = "success"
-	FAILED        = "Failed"
+	FAILED        = "failed"
 	PENDING       = "pending"
 	NSE           = "NSE"
 	BSE           = "BSE"
 	AUTOBOT       = "AUTOBOT"
+	//added by naveen
+	Mobile = "M"
+	Web    = "W"
 )
 
 var ABHIAllowOrigin []string

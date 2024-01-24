@@ -2,7 +2,6 @@ package bsesgb
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -44,56 +43,57 @@ Date: 05JUNE2023
 func BseSgbMaster(pToken string, lUser string) ([]BseSgbMasterStruct, error) {
 	log.Println("BseSgbMaster (+)")
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	//create instance to receive SgbRespStruct
 	var lApiRespArr []BseSgbMasterStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// create instance to hold errors
-	var lErr1 error
+	// var lErr1 error
 
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["BseSgbMaster"])
 	log.Println(lUrl, "endpoint")
 
-	lLogInputRec.Request = ""
-	lLogInputRec.EndPoint = "bse/v1/sgbmaster"
-	lLogInputRec.Flag = common.INSERT
-	lLogInputRec.ClientId = lUser
-	lLogInputRec.Method = "GET"
+	// lLogInputRec.Request = ""
+	// lLogInputRec.EndPoint = "bse/v1/sgbmaster"
+	// lLogInputRec.Flag = common.INSERT
+	// lLogInputRec.ClientId = lUser
+	// lLogInputRec.Method = "GET"
 
-	// ! LogEntry method is used to store the Request in Database
-	lId, lErr1 = Function.LogEntry(lLogInputRec)
-	if lErr1 != nil {
-		log.Println("NSM01", lErr1)
-		return lApiRespArr, lErr1
+	// // ! LogEntry method is used to store the Request in Database
+	// lId, lErr1 = Function.LogEntry(lLogInputRec)
+	// if lErr1 != nil {
+	// 	log.Println("NSM01", lErr1)
+	// 	return lApiRespArr, lErr1
+	// } else {
+	// TokenApi method used to call exchange API
+	lResp, lErr2 := BseSgbApi(pToken, lUrl)
+	if lErr2 != nil {
+		log.Println("NSM02", lErr2)
+		return lApiRespArr, lErr2
 	} else {
-		// TokenApi method used to call exchange API
-		lResp, lErr2 := BseSgbApi(pToken, lUrl)
-		if lErr2 != nil {
-			log.Println("NSM02", lErr2)
-			return lApiRespArr, lErr2
-		}
 		lApiRespArr = lResp
 		log.Println("Response", lResp)
-		// Store thre Response in Log table
-		lResponse, lErr3 := json.Marshal(lResp)
-		if lErr3 != nil {
-			log.Println("NSM03", lErr3)
-			return lApiRespArr, lErr3
-		} else {
-			lLogInputRec.Response = string(lResponse)
-			lLogInputRec.LastId = lId
-			lLogInputRec.Flag = common.UPDATE
-			// create instance to hold errors
-			var lErr4 error
-			lId, lErr4 = Function.LogEntry(lLogInputRec)
-			if lErr4 != nil {
-				log.Println("NSM04", lErr4)
-				return lApiRespArr, lErr4
-			}
-		}
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr3 := json.Marshal(lResp)
+	// if lErr3 != nil {
+	// 	log.Println("NSM03", lErr3)
+	// 	return lApiRespArr, lErr3
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	// create instance to hold errors
+	// 	var lErr4 error
+	// 	lId, lErr4 = Function.LogEntry(lLogInputRec)
+	// 	if lErr4 != nil {
+	// 		log.Println("NSM04", lErr4)
+	// 		return lApiRespArr, lErr4
+	// 	}
+	// }
+	// }
 	// log.Println(lApiRespArr)
 	log.Println("BseSgbMaster (-)")
 	return lApiRespArr, nil

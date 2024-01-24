@@ -14,7 +14,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 		requestorDetail := GetRequestorDetail(r)
 		requestorDetail.Body = string(body)
 		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		LogRequest("", requestorDetail)
+		LogRequest("", requestorDetail, "")
 		next.ServeHTTP(w, r)
 
 	})

@@ -88,7 +88,7 @@ func GetLookUpDetails(w http.ResponseWriter, r *http.Request) {
 		var lResp DetailsResponse
 		lResp.Status = "S"
 		body, lErr1 := ioutil.ReadAll(r.Body)
-		log.Println("body", string(body))
+		// log.Println("body", string(body))
 		if lErr1 != nil {
 			lResp.Status = "E"
 			log.Println("Err 1", lErr1)
@@ -96,7 +96,7 @@ func GetLookUpDetails(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// lErr2 := json.Unmarshal(body, &id)
 			lInput.HeaderId = string(body)
-			log.Println("HeaderId", lInput.HeaderId)
+			// log.Println("HeaderId", lInput.HeaderId)
 			// if lErr2 != nil {
 			// 	lResp.Status = "E"
 			// 	log.Println("Err 2", lErr2)
@@ -203,7 +203,7 @@ func AddLookUpDetails(w http.ResponseWriter, r *http.Request) {
 		var lResp DetailsResponse
 		lResp.Status = "S"
 		body, lErr1 := ioutil.ReadAll(r.Body)
-		log.Println("body", string(body))
+		// log.Println("body", string(body))
 		if lErr1 != nil {
 			lResp.Status = "E"
 			log.Println("Err 1", lErr1)
@@ -211,7 +211,7 @@ func AddLookUpDetails(w http.ResponseWriter, r *http.Request) {
 		} else {
 			lErr2 := json.Unmarshal(body, &lInput)
 			// lId = string(body)
-			log.Println("Input", lInput)
+			// log.Println("Input", lInput)
 			if lErr2 != nil {
 				lResp.Status = "E"
 				log.Println("Err 2", lErr2)
@@ -283,7 +283,7 @@ func AddLookUpDetails(w http.ResponseWriter, r *http.Request) {
 func InsertDetailsValue(lDb *sql.DB, lInput LookUpDetails) error {
 	log.Println("InsertDetailsValue(+)")
 
-	log.Println("insert input", lInput)
+	// log.Println("insert input", lInput)
 
 	// ! To insert the LookUpHeader code,description
 	CoreString := `insert into xx_lookup_details(headerid,Code , description ,Attribute1,  createdBy, createdDate, updatedBy, updatedDate)

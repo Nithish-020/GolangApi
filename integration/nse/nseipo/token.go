@@ -2,7 +2,6 @@ package nseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/ftdb"
 	"fcs23pkg/util/apiUtil"
@@ -27,11 +26,11 @@ type loginRespStruct struct {
 func Token(pUser string, pBrokerId int) (loginRespStruct, error) {
 	log.Println("Token....(+)")
 	// Create instance for Parameter struct
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	// Create instance for loinRespStruct
 	var lApiRespRec loginRespStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	//To link the toml file
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["Login"])
@@ -42,48 +41,49 @@ func Token(pUser string, pBrokerId int) (loginRespStruct, error) {
 		return lApiRespRec, lErr
 	} else {
 		// Marshalling the structure for LogEntry method
-		lRequest, lErr := json.Marshal(lDetail)
+		// lRequest, lErr := json.Marshal(lDetail)
+		// if lErr != nil {
+		// 	log.Println("NT01", lErr)
+		// 	return lApiRespRec, lErr
+		// } else {
+		// 	lLogInputRec.Request = string(lRequest)
+		// 	lLogInputRec.EndPoint = "/v1/login"
+		// 	lLogInputRec.Flag = common.INSERT
+		// 	lLogInputRec.ClientId = pUser
+		// 	lLogInputRec.Method = "POST"
+
+		// 	// LogEntry method is used to store the Request in Database
+		// 	lId, lErr = Function.LogEntry(lLogInputRec)
+		// 	if lErr != nil {
+		// 		log.Println("NT02", lErr)
+		// 		return lApiRespRec, lErr
+		// 	} else {
+		// TokenApi method used to call exchange API
+		lResp, lErr := TokenApi(lDetail, lUrl)
 		if lErr != nil {
-			log.Println("NT01", lErr)
+			log.Println("NT03", lErr)
 			return lApiRespRec, lErr
 		} else {
-			lLogInputRec.Request = string(lRequest)
-			lLogInputRec.EndPoint = "/v1/login"
-			lLogInputRec.Flag = common.INSERT
-			lLogInputRec.ClientId = pUser
-			lLogInputRec.Method = "POST"
-
-			// LogEntry method is used to store the Request in Database
-			lId, lErr = Function.LogEntry(lLogInputRec)
-			if lErr != nil {
-				log.Println("NT02", lErr)
-				return lApiRespRec, lErr
-			} else {
-				// TokenApi method used to call exchange API
-				lResp, lErr := TokenApi(lDetail, lUrl)
-				if lErr != nil {
-					log.Println("NT03", lErr)
-					return lApiRespRec, lErr
-				}
-				lApiRespRec = lResp
-				// Store thre Response in Log table
-				lResponse, lErr := json.Marshal(lResp)
-				if lErr != nil {
-					log.Println("NT04", lErr)
-					return lApiRespRec, lErr
-				} else {
-					lLogInputRec.Response = string(lResponse)
-					lLogInputRec.LastId = lId
-					lLogInputRec.Flag = common.UPDATE
-
-					lId, lErr = Function.LogEntry(lLogInputRec)
-					if lErr != nil {
-						log.Println("NT05", lErr)
-						return lApiRespRec, lErr
-					}
-				}
-			}
+			lApiRespRec = lResp
 		}
+		// Store thre Response in Log table
+		// lResponse, lErr := json.Marshal(lResp)
+		// if lErr != nil {
+		// 	log.Println("NT04", lErr)
+		// 	return lApiRespRec, lErr
+		// } else {
+		// 	lLogInputRec.Response = string(lResponse)
+		// 	lLogInputRec.LastId = lId
+		// 	lLogInputRec.Flag = common.UPDATE
+
+		// 	lId, lErr = Function.LogEntry(lLogInputRec)
+		// 	if lErr != nil {
+		// 		log.Println("NT05", lErr)
+		// 		return lApiRespRec, lErr
+		// 	}
+		// }
+		// }
+		// }
 	}
 	log.Println("Token....(-)")
 	return lApiRespRec, nil

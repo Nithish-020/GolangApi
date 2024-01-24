@@ -2,7 +2,6 @@ package nseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -156,54 +155,55 @@ Date: 05JUNE2023
 func IpoMaster(pToken string, lUser string) (IpoResponseStruct, error) {
 	log.Println("IpoMaster...(+)")
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	//create instance to receive iporespStruct
 	var lApiRespRec IpoResponseStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// create instance to hold errors
-	var lErr error
+	// var lErr error
 
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["Master"])
 	log.Println(lUrl, "endpoint")
 
-	lLogInputRec.Request = ""
-	lLogInputRec.EndPoint = "nse/v1/ipomaster"
-	lLogInputRec.Flag = common.INSERT
-	lLogInputRec.ClientId = lUser
-	lLogInputRec.Method = "GET"
+	// lLogInputRec.Request = ""
+	// lLogInputRec.EndPoint = "nse/v1/ipomaster"
+	// lLogInputRec.Flag = common.INSERT
+	// lLogInputRec.ClientId = lUser
+	// lLogInputRec.Method = "GET"
 
-	// ! LogEntry method is used to store the Request in Database
-	lId, lErr = Function.LogEntry(lLogInputRec)
+	// // ! LogEntry method is used to store the Request in Database
+	// lId, lErr = Function.LogEntry(lLogInputRec)
 
+	// if lErr != nil {
+	// 	log.Println("NIM01", lErr)
+	// 	return lApiRespRec, lErr
+	// } else {
+	// TokenApi method used to call exchange API
+	lResp, lErr := ExchangeIpoMaster(pToken, lUrl)
 	if lErr != nil {
-		log.Println("NIM01", lErr)
+		log.Println("NIM02", lErr)
 		return lApiRespRec, lErr
 	} else {
-		// TokenApi method used to call exchange API
-		lResp, lErr := ExchangeIpoMaster(pToken, lUrl)
-		if lErr != nil {
-			log.Println("NIM02", lErr)
-			return lApiRespRec, lErr
-		}
 		lApiRespRec = lResp
-		// Store thre Response in Log table
-		lResponse, lErr := json.Marshal(lResp)
-		if lErr != nil {
-			log.Println("NIM03", lErr)
-			return lApiRespRec, lErr
-		} else {
-			lLogInputRec.Response = string(lResponse)
-			lLogInputRec.LastId = lId
-			lLogInputRec.Flag = common.UPDATE
-			lId, lErr = Function.LogEntry(lLogInputRec)
-			if lErr != nil {
-				log.Println("NIM04", lErr)
-				return lApiRespRec, lErr
-			}
-		}
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr := json.Marshal(lResp)
+	// if lErr != nil {
+	// 	log.Println("NIM03", lErr)
+	// 	return lApiRespRec, lErr
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NIM04", lErr)
+	// 		return lApiRespRec, lErr
+	// 	}
+	// }
+	// }
 	// log.Println(lApiRespRec)
 	log.Println("IpoMaster...(-)")
 	return lApiRespRec, nil

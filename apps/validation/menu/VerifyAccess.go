@@ -128,7 +128,7 @@ func VerifyAccess(w http.ResponseWriter, r *http.Request) {
 				if lCode != "E" {
 					lRespRec.RouterArr = lRouterArr
 					lRespRec.Status = common.SuccessCode
-					log.Println("Finally RouterArr", lRespRec.RouterArr)
+					// log.Println("Finally RouterArr", lRespRec.RouterArr)
 				} else {
 					fmt.Fprintf(w, helpers.GetErrorString("ASC03", "Access Restricted !"))
 					return
@@ -315,7 +315,7 @@ func SendConfig(pClientid string, pFlag string, pBrokerId int) ([]RouterStruct, 
 			log.Println("ASC02", lErr2)
 			return lRouterArr, lCode, lErr2
 		} else {
-			log.Println("pFlag ", pFlag, lRole, lRouterArr)
+			// log.Println("pFlag ", pFlag, lRole, lRouterArr)
 			if pFlag == "N" {
 				if lRole == "SuperAdmin" || lRole == "BrokerSuperAdmin" {
 					// log.Println("Check SuperAdmin || BrokerSuperAdmin", pFlag, lRole, lRouterArr)
@@ -342,7 +342,7 @@ func SendConfig(pClientid string, pFlag string, pBrokerId int) ([]RouterStruct, 
 					return lRouterArr, lCode, lErr3
 				} else {
 					lRouterArr = lconfigArr
-					log.Println("lRouterArr************", lRouterArr, lconfigArr)
+					// log.Println("lRouterArr************", lRouterArr, lconfigArr)
 				}
 			}
 		}

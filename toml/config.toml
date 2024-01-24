@@ -34,16 +34,6 @@ BseIpoMaster = "https://uat.bseindia.in/ibbsmsgapi/iBBSWebBroadcastApi.svc/v1/op
 BseIpoCategory = "https://uat.bseindia.in/ibbsmsgapi/iBBSWebBroadcastApi.svc/v1/issuetime"
 BseIpoOrder = "https://uat.bseindia.in/ibbsapi/ibbsapiservice.svc/v1/ipoorder"
 
-#---------------------------------------------------------------------
-#FUND CHECKING API
-#---------------------------------------------------------------------
-
-#OLD API URL----> VerifyFund =  "http://192.168.150.21:29091/query/?qc=CFNDBL&typ=v&qp1="
-#NEW API URL
-VerifyUser = "ADMIN2"
-VerifyFOFund =  "http://192.168.150.16:5586/NorenWCAdmin/Limits"
-PayoutUrl = "http://192.168.150.16:5586/NorenWCAdmin/UpdatePayout"
-PayinUrl = "http://192.168.150.16:5586/NorenWCAdmin/UpdatePayin"
 
 #---------------------------------------------------------------------
 # MarketData API
@@ -52,3 +42,22 @@ MarketDemand = "https://uat-ipo.nseindia.com/eipo/mktdata/v1/demand/"
 MarketCatwise = "https://uat-ipo.nseindia.com/eipo/mktdata/v1/catwise/"
 Credential = "MTQ1NzJebGFrc2htYW5hbjpiZXN0QDEyMzQ1Njc="
 #Credential = "MTQ1NzJeUkFNOkJlc3RAMTIzNDU2Nzg="
+
+
+
+#------------------------------------------------------------------------
+#NSENCB -- Prod
+#------------------------------------------------------------------------
+
+#NcbMaster = "https://eipo.nseindia.com/eipo/v1/ncbmaster"
+#NseNcbOrder = "https://eipo.nseindia.com/eipo/v1/ncb/add"
+#NseNcbTime = "https://eipo.nseindia.com/eipo/v1/ncb/"
+#NseNcbFetch = "https://eipo.nseindia.com/eipo/v1/ncb/fetch"
+
+#------------------------------------------------------------------------
+#NSENCB -- UIT
+#------------------------------------------------------------------------
+NcbMaster = "https://uat-ipo.nseindia.com/eipo/v1/ncbmaster"
+NseNcbOrder = "https://uat-ipo.nseindia.com/eipo/v1/ncb/add"
+NseNcbTime = "https://uat-ipo.nseindia.com/eipo/v1/ncb/"
+NseNcbFetch = "https://uat-ipo.nseindia.com/eipo/v1/ncb/fetch"

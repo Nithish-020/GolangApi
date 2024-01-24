@@ -41,7 +41,7 @@ func CheckNcbEndDate(pMasterId int) (string, error) {
 		return lIndicator, lErr1
 	} else {
 		defer lDb.Close()
-		lCoreString := `select (case when count(1) > 0 then n.id else 0 end) id, (case when n.DailyEndTime > '16:30:00' then 'T' else 'F' end) flag  
+		lCoreString := `select (case when count(1) > 0 then n.id else 0 end) id, (case when n.DailyEndTime > '15:30:00' then 'T' else 'F' end) flag  
 		                from a_ncb_master n
 		                where n.BiddingEndDate = date(now())
 		                and n.id = ?`
@@ -69,6 +69,7 @@ func CheckNcbEndDate(pMasterId int) (string, error) {
 				}
 			}
 		}
+		log.Println("lIndicator", lIndicator)
 	}
 	log.Println("CheckNcbEndDate (-)")
 	return lIndicator, nil

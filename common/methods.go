@@ -314,3 +314,33 @@ func CustomError(pErrorMsg string) error {
 	err := errors.New(pErrorMsg)
 	return err
 }
+
+//----------------------------------------------------------------
+// this method generating a 16 digit unique string value,
+// concatinates the clientId and unix timestamp value
+// ----------------------------------------------------------------
+func Generate16DigitString(pClientId string) string {
+	log.Println("Generate16DigitString (+)")
+
+	// Get Unix timestamp in seconds
+	unixTimestamp := time.Now().Unix()
+
+	// Calculate the remaining length needed for timestamp digits
+	remainingLength := 16 - len(pClientId)
+
+	// Convert timestamp to a string
+	timestampString := fmt.Sprintf("%d", unixTimestamp)
+
+	// Calculate how many characters from the timestamp are needed based on the prefix length
+	charsFromTimestamp := remainingLength
+	if len(pClientId) < remainingLength {
+		charsFromTimestamp = remainingLength - len(pClientId)
+	}
+
+	// Get the appropriate substring of the timestamp
+	trimmedTimestamp := timestampString[len(timestampString)-charsFromTimestamp:]
+
+	log.Println("Generate16DigitString (-)")
+	// Concatenate the prefix and adjusted timestamp
+	return pClientId + trimmedTimestamp
+}

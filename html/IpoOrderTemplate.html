@@ -42,9 +42,7 @@
 
                     <p><b>Dear {{.Name}}</b>,</p>
                     <p style="text-align: left;font-family: 'arial'; font-size: 13px;; line-height:20px ">
-                        We are pleased to inform you that your IPO order has been successfully placed on your behalf,
-                        Kindly accept the mandate sent to the UPI ID entered in the application. The details of the IPO
-                        that you have applied for are given in the table below:
+                        {{.EmailHeader}}
                     </p>
                     <table class="pt-5" cellpadding="0" cellspacing="0" align="center"
                         style=" border: 1px solid rgb(218, 216, 216);width: 100%; ">
@@ -105,16 +103,14 @@
                                     AutoBot.<br><br> -->
                         <b>Please Note:</b><br>
                         <span style="font: size 0.8rem; font-family: 'arial';">
-                            You can modify or delete your subscription on or before the last day of the IPO closing date
-                            in <a href="https://novo.flattrade.in/" target="_blank">NOVO</a>. Please be informed that
-                            this is not a confirmation that the corresponding shares have been allotted. You have to
-                            check the concerned registrar's website for the allotment of shares. If the shares are
-                            allotted, you will be able to see the number of shares in your Demat account on the day of
-                            listing.</span> <br><br>
+                            {{.EmailBody}}
+                        </span> <br><br>
+                        {{if ne .Activity "cancel"}}
                         <span style="font: size 0.8rem; font-family: 'arial';text-align: left">
                             To check allotment, <a
                                 href="https://flattrade.in/support/knowledge-base/how-to-check-ipo-allocation/"
                                 target="_blank">click here</a></span> <br><br>
+                        {{end}}
                         <span>Regards,</span><br>
                         <span>Flattrade</span>
                     <p style="font-size:13px ;text-align: center;">

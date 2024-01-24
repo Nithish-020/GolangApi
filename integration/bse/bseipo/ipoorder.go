@@ -2,7 +2,6 @@ package bseipo
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -78,55 +77,56 @@ func BseIpoOrder(pToken string, pRequestArr BseExchangeReqStruct, pUser string, 
 
 	//For Exchagnge response
 	var lExchangeResArr BseExchangeRespStruct
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// To establish the connection between toml file
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["BseIpoOrder"])
 	log.Println(lUrl, "endpoint")
 
-	lRequest, lErr := json.Marshal(pRequestArr)
-	if lErr != nil {
-		log.Println("BBIO01", lErr)
-		return lExchangeResArr, lErr
-	} else {
-		lLogInputRec.Request = string(lRequest)
-		lLogInputRec.EndPoint = "bse/v1/ipoorder"
-		lLogInputRec.Flag = common.INSERT
-		lLogInputRec.ClientId = pUser
-		lLogInputRec.Method = "POST"
+	// lRequest, lErr := json.Marshal(pRequestArr)
+	// if lErr != nil {
+	// 	log.Println("BBIO01", lErr)
+	// 	return lExchangeResArr, lErr
+	// } else {
+	// 	lLogInputRec.Request = string(lRequest)
+	// 	lLogInputRec.EndPoint = "bse/v1/ipoorder"
+	// 	lLogInputRec.Flag = common.INSERT
+	// 	lLogInputRec.ClientId = pUser
+	// 	lLogInputRec.Method = "POST"
 
-		// LogEntry method is used to store the Request in Database
-		lId, lErr = Function.LogEntry(lLogInputRec)
-		if lErr != nil {
-			log.Println("BBIO02", lErr)
-			return lExchangeResArr, lErr
-		} else {
-			// ExchangeOrder method used to call exchange API
-			lResp, lErr2 := BseExchangeOrder(pToken, lUrl, pRequestArr, pBrokerId)
-			if lErr2 != nil {
-				log.Println("BBIO03", lErr2)
-				return lExchangeResArr, lErr2
-			}
-			lExchangeResArr = lResp
-			// Store thre Response in Log table
-			lResponse, lErr3 := json.Marshal(lResp)
-			if lErr3 != nil {
-				log.Println("BBIO04", lErr3)
-				return lExchangeResArr, lErr3
-			} else {
-				lLogInputRec.Response = string(lResponse)
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				lId, lErr3 = Function.LogEntry(lLogInputRec)
-				if lErr3 != nil {
-					log.Println("BBIO05", lErr3)
-					return lExchangeResArr, lErr3
-				}
-			}
-		}
+	// LogEntry method is used to store the Request in Database
+	// lId, lErr = Function.LogEntry(lLogInputRec)
+	// if lErr != nil {
+	// 	log.Println("BBIO02", lErr)
+	// 	return lExchangeResArr, lErr
+	// } else {
+	// ExchangeOrder method used to call exchange API
+	lResp, lErr2 := BseExchangeOrder(pToken, lUrl, pRequestArr, pBrokerId)
+	if lErr2 != nil {
+		log.Println("BBIO03", lErr2)
+		return lExchangeResArr, lErr2
+	} else {
+		lExchangeResArr = lResp
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr3 := json.Marshal(lResp)
+	// if lErr3 != nil {
+	// 	log.Println("BBIO04", lErr3)
+	// 	return lExchangeResArr, lErr3
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	lId, lErr3 = Function.LogEntry(lLogInputRec)
+	// 	if lErr3 != nil {
+	// 		log.Println("BBIO05", lErr3)
+	// 		return lExchangeResArr, lErr3
+	// 	}
+	// }
+	// }
+	// }
 	log.Println(lExchangeResArr)
 	log.Println("BseIpoOrder (-)")
 	return lExchangeResArr, nil

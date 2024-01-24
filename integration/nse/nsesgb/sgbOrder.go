@@ -2,7 +2,6 @@ package nsesgb
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -56,55 +55,56 @@ func SgbOrderTransaction(pToken string, pSgbRequestArr SgbAddReqStruct, pUser st
 
 	//For Exchagnge response
 	var lsgbExhangeResArr SgbAddResStruct
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// To establish the connection between toml file
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["NseSgbOrder"])
 	log.Println(lUrl, "endpoint")
 
-	lRequest, lErr := json.Marshal(pSgbRequestArr)
+	// lRequest, lErr := json.Marshal(pSgbRequestArr)
+	// if lErr != nil {
+	// 	log.Println("NSOT01", lErr)
+	// 	return lsgbExhangeResArr, lErr
+	// } else {
+	// 	lLogInputRec.Request = string(lRequest)
+	// 	lLogInputRec.EndPoint = "/v1/sgb/add"
+	// 	lLogInputRec.Flag = common.INSERT
+	// 	lLogInputRec.ClientId = pUser
+	// 	lLogInputRec.Method = "POST"
+
+	// 	// LogEntry method is used to store the Request in Database
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NSOT02", lErr)
+	// 		return lsgbExhangeResArr, lErr
+	// 	} else {
+	// ExchangeOrder method used to call exchange API
+	lResp, lErr := SgbExchangeOrder(pToken, lUrl, pSgbRequestArr)
 	if lErr != nil {
-		log.Println("NSOT01", lErr)
+		log.Println("NSOT03", lErr)
 		return lsgbExhangeResArr, lErr
 	} else {
-		lLogInputRec.Request = string(lRequest)
-		lLogInputRec.EndPoint = "/v1/sgb/add"
-		lLogInputRec.Flag = common.INSERT
-		lLogInputRec.ClientId = pUser
-		lLogInputRec.Method = "POST"
-
-		// LogEntry method is used to store the Request in Database
-		lId, lErr = Function.LogEntry(lLogInputRec)
-		if lErr != nil {
-			log.Println("NSOT02", lErr)
-			return lsgbExhangeResArr, lErr
-		} else {
-			// ExchangeOrder method used to call exchange API
-			lResp, lErr := SgbExchangeOrder(pToken, lUrl, pSgbRequestArr)
-			if lErr != nil {
-				log.Println("NSOT03", lErr)
-				return lsgbExhangeResArr, lErr
-			}
-			lsgbExhangeResArr = lResp
-			// Store thre Response in Log table
-			lResponse, lErr := json.Marshal(lResp)
-			if lErr != nil {
-				log.Println("NSOT04", lErr)
-				return lsgbExhangeResArr, lErr
-			} else {
-				lLogInputRec.Response = string(lResponse)
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				lId, lErr = Function.LogEntry(lLogInputRec)
-				if lErr != nil {
-					log.Println("NSOT05", lErr)
-					return lsgbExhangeResArr, lErr
-				}
-			}
-		}
+		lsgbExhangeResArr = lResp
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr := json.Marshal(lResp)
+	// if lErr != nil {
+	// 	log.Println("NSOT04", lErr)
+	// 	return lsgbExhangeResArr, lErr
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NSOT05", lErr)
+	// 		return lsgbExhangeResArr, lErr
+	// 	}
+	// }
+	// }
+	// }
 	log.Println(lsgbExhangeResArr)
 	log.Println("SgbOrderTransaction....(-)")
 	return lsgbExhangeResArr, nil

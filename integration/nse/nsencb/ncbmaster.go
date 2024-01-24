@@ -2,7 +2,6 @@ package nsencb
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -64,58 +63,59 @@ func NcbMaster(pToken string, lUser string) (NcbRespStruct, error) {
 	log.Println("NcbMaster...(+)")
 	log.Println("pToken : NcbMaster", pToken)
 	//create parameters struct for LogEntry method
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 
 	//create instance to receive NcbRespStruct
 	var lNcbRespRec NcbRespStruct
 	// create instance to hold the last inserted id
 
-	var lId int
+	// var lId int
 	// create instance to hold errors
-	var lErr1 error
+	// var lErr1 error
 
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["NcbMaster"])
-	log.Println(lUrl, "endpoint")
+	// log.Println(lUrl, "endpoint")
 
-	lLogInputRec.Request = ""
-	lLogInputRec.EndPoint = "/v1/ncbmaster"
-	lLogInputRec.Flag = common.INSERT
-	lLogInputRec.ClientId = lUser
-	lLogInputRec.Method = "GET"
+	// lLogInputRec.Request = ""
+	// lLogInputRec.EndPoint = "/v1/ncbmaster"
+	// lLogInputRec.Flag = common.INSERT
+	// lLogInputRec.ClientId = lUser
+	// lLogInputRec.Method = "GET"
 
-	// ! LogEntry method is used to store the Request in Database
-	lId, lErr1 = Function.LogEntry(lLogInputRec)
-	if lErr1 != nil {
-		log.Println("NNM01", lErr1)
-		return lNcbRespRec, lErr1
+	// // ! LogEntry method is used to store the Request in Database
+	// lId, lErr1 = Function.LogEntry(lLogInputRec)
+	// if lErr1 != nil {
+	// 	log.Println("NNM01", lErr1)
+	// 	return lNcbRespRec, lErr1
+	// } else {
+	// TokenApi method used to call exchange API
+	lNcbResp, lErr2 := ExchangeNcbMaster(pToken, lUrl)
+	if lErr2 != nil {
+		log.Println("NNM02", lErr2)
+		return lNcbRespRec, lErr2
 	} else {
-		// TokenApi method used to call exchange API
-		lNcbResp, lErr2 := ExchangeNcbMaster(pToken, lUrl)
-		if lErr2 != nil {
-			log.Println("NNM02", lErr2)
-			return lNcbRespRec, lErr2
-		}
 		lNcbRespRec = lNcbResp
-		log.Println("lNcbResp Response", lNcbResp)
-		// Store thre Response in Log table
-		lResponse, lErr3 := json.Marshal(lNcbResp)
-		if lErr3 != nil {
-			log.Println("NNM03", lErr3)
-			return lNcbRespRec, lErr3
-		} else {
-			lLogInputRec.Response = string(lResponse)
-			lLogInputRec.LastId = lId
-			lLogInputRec.Flag = common.UPDATE
-			// create instance to hold errors
-			var lErr4 error
-			lId, lErr4 = Function.LogEntry(lLogInputRec)
-			if lErr4 != nil {
-				log.Println("NNM04", lErr4)
-				return lNcbRespRec, lErr4
-			}
-		}
+		// log.Println("lNcbResp Response", lNcbResp)
 	}
+	// Store thre Response in Log table
+	// lResponse, lErr3 := json.Marshal(lNcbResp)
+	// if lErr3 != nil {
+	// 	log.Println("NNM03", lErr3)
+	// 	return lNcbRespRec, lErr3
+	// } else {
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	// create instance to hold errors
+	// 	var lErr4 error
+	// 	lId, lErr4 = Function.LogEntry(lLogInputRec)
+	// 	if lErr4 != nil {
+	// 		log.Println("NNM04", lErr4)
+	// 		return lNcbRespRec, lErr4
+	// 	}
+	// }
+	// }
 
 	log.Println("NcbMaster...(-)")
 	return lNcbRespRec, nil
@@ -123,7 +123,7 @@ func NcbMaster(pToken string, lUser string) (NcbRespStruct, error) {
 
 func ExchangeNcbMaster(pToken string, pUrl string) (NcbRespStruct, error) {
 	log.Println("ExchangeNcbMaster....(+)")
-	log.Println("pToken :ExchangeNcbMaster ", pToken)
+	// log.Println("pToken :ExchangeNcbMaster ", pToken)
 	// create a new instance of NcbResponseStruct
 	var lNcbRespRec NcbRespStruct
 	// create a new instance of HeaderDetails struct
@@ -148,13 +148,14 @@ func ExchangeNcbMaster(pToken string, pUrl string) (NcbRespStruct, error) {
 		log.Println("NENM01", lErr1)
 		return lNcbRespRec, lErr1
 	} else {
-		log.Println("lResp API_CAll NCb", lResp)
+		// log.Println("lResp API_CAll NCb", lResp)
 		lErr2 := json.Unmarshal([]byte(lResp), &lNcbRespRec)
 		if lErr2 != nil {
 			log.Println("NENM02", lErr2)
 			return lNcbRespRec, lErr2
+		} else {
+			log.Println("lNcbRespRec", lNcbRespRec)
 		}
-		log.Println("lNcbRespRec", lNcbRespRec)
 
 		// for Idx := 0; Idx < len(lNcbRespRec.Data); Idx++ {
 		// 	maxQuantityStr := lNcbRespRec.Data[Idx].MaxQuantity
@@ -170,7 +171,6 @@ func ExchangeNcbMaster(pToken string, pUrl string) (NcbRespStruct, error) {
 		// 			log.Println("maxQuantity", maxQuantity)
 		// 		}
 		// 	}
-
 		// }
 
 		for Idx := 0; Idx < len(lNcbRespRec.Data); Idx++ {
@@ -180,18 +180,20 @@ func ExchangeNcbMaster(pToken string, pUrl string) (NcbRespStruct, error) {
 			switch maxQuantity := maxQuantityValue.(type) {
 			case string:
 				// Handle string value
-				log.Println("maxQuantity (string):", maxQuantity)
+				// log.Println("maxQuantity (string):", maxQuantity)
 				// You can convert it to a numeric type if needed
 				maxQuantityFloat, err := strconv.ParseFloat(maxQuantity, 64)
 				if err != nil {
 					log.Println("Error parsing MaxQuantity:", err)
 				} else {
-					log.Println("maxQuantity (float64):", maxQuantityFloat)
+					lNcbRespRec.Data[Idx].MaxQuantity = maxQuantityFloat
+					// log.Println("maxQuantity (float64):", maxQuantityFloat)
 				}
 
 			case float64:
 				// Handle float64 value
-				log.Println("maxQuantity (float64):", maxQuantity)
+				// log.Println("maxQuantity (float64):", maxQuantity)
+				lNcbRespRec.Data[Idx].MaxQuantity = maxQuantity
 
 			default:
 				log.Println("Unknown type for maxQuantity")

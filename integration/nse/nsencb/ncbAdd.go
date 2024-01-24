@@ -2,7 +2,6 @@ package nsencb
 
 import (
 	"encoding/json"
-	"fcs23pkg/apps/Ipo/Function"
 	"fcs23pkg/common"
 	"fcs23pkg/util/apiUtil"
 	"fmt"
@@ -56,57 +55,59 @@ func NcbAddOrder(pToken string, pNcbRequestArr NcbAddReqStruct, pUser string) (N
 
 	//For Exchagnge response
 	var lNcbExhangeResArr NcbAddResStruct
-	var lLogInputRec Function.ParameterStruct
+	// var lLogInputRec Function.ParameterStruct
 	// create instance to hold the last inserted id
-	var lId int
+	// var lId int
 	// To establish the connection between toml file
 	lConfigFile := common.ReadTomlConfig("./toml/config.toml")
 	lUrl := fmt.Sprintf("%v", lConfigFile.(map[string]interface{})["NseNcbOrder"])
 	log.Println(lUrl, "endpoint")
 
-	lRequest, lErr := json.Marshal(pNcbRequestArr)
+	// lRequest, lErr := json.Marshal(pNcbRequestArr)
+	// if lErr != nil {
+	// 	log.Println("NNAO01", lErr)
+	// 	return lNcbExhangeResArr, lErr
+	// } else {
+	// 	lLogInputRec.Request = string(lRequest)
+	// 	lLogInputRec.EndPoint = "/v1/ncb/add"
+	// 	lLogInputRec.Flag = common.INSERT
+	// 	lLogInputRec.ClientId = pUser
+	// 	lLogInputRec.Method = "POST"
+
+	// 	// LogEntry method is used to store the Request in Database
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NNAO02", lErr)
+	// 		return lNcbExhangeResArr, lErr
+	// 	} else {
+	// ExchangeOrder method used to call exchange API
+	lResp, lErr := NcbExchangeOrder(pToken, lUrl, pNcbRequestArr)
 	if lErr != nil {
-		log.Println("NNAO01", lErr)
+		log.Println("NNAO03", lErr)
 		return lNcbExhangeResArr, lErr
 	} else {
-		lLogInputRec.Request = string(lRequest)
-		lLogInputRec.EndPoint = "/v1/ncb/add"
-		lLogInputRec.Flag = common.INSERT
-		lLogInputRec.ClientId = pUser
-		lLogInputRec.Method = "POST"
-
-		// LogEntry method is used to store the Request in Database
-		lId, lErr = Function.LogEntry(lLogInputRec)
-		if lErr != nil {
-			log.Println("NNAO02", lErr)
-			return lNcbExhangeResArr, lErr
-		} else {
-			// ExchangeOrder method used to call exchange API
-			lResp, lErr := NcbExchangeOrder(pToken, lUrl, pNcbRequestArr)
-			if lErr != nil {
-				log.Println("NNAO03", lErr)
-				return lNcbExhangeResArr, lErr
-			}
-			log.Println("lResp ADD NCB", lResp)
-			lNcbExhangeResArr = lResp
-			// Store thre Response in Log table
-			lResponse, lErr := json.Marshal(lResp)
-			if lErr != nil {
-				log.Println("NNAO04", lErr)
-				return lNcbExhangeResArr, lErr
-			} else {
-				log.Println("lResponse", lResponse)
-				lLogInputRec.Response = string(lResponse)
-				lLogInputRec.LastId = lId
-				lLogInputRec.Flag = common.UPDATE
-				lId, lErr = Function.LogEntry(lLogInputRec)
-				if lErr != nil {
-					log.Println("NNAO05", lErr)
-					return lNcbExhangeResArr, lErr
-				}
-			}
-		}
+		log.Println("lResp ADD NCB", lResp)
+		lNcbExhangeResArr = lResp
 	}
+
+	// Store thre Response in Log table
+	// lResponse, lErr := json.Marshal(lResp)
+	// if lErr != nil {
+	// 	log.Println("NNAO04", lErr)
+	// 	return lNcbExhangeResArr, lErr
+	// } else {
+	// 	log.Println("lResponse", lResponse)
+	// 	lLogInputRec.Response = string(lResponse)
+	// 	lLogInputRec.LastId = lId
+	// 	lLogInputRec.Flag = common.UPDATE
+	// 	lId, lErr = Function.LogEntry(lLogInputRec)
+	// 	if lErr != nil {
+	// 		log.Println("NNAO05", lErr)
+	// 		return lNcbExhangeResArr, lErr
+	// 	}
+	// }
+	// }
+	// }
 	log.Println(lNcbExhangeResArr)
 	log.Println("NcbAddOrder....(-)")
 	return lNcbExhangeResArr, nil
@@ -138,6 +139,7 @@ func NcbExchangeOrder(pToken string, pUrl string, pNcbExchangeReqArr NcbAddReqSt
 		return lNcbRespArr, lErr
 	} else {
 		lReqstring := string(ljsonData)
+		log.Println(pUrl, "pUrl", lReqstring, "lReqstring", lHeaderArr, "lHeaderArr")
 		lNcbResp, lErr := apiUtil.Api_call(pUrl, "POST", lReqstring, lHeaderArr, "Token")
 		if lErr != nil {
 			log.Println("NNEO02", lErr)

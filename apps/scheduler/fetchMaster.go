@@ -109,7 +109,7 @@ func FetchIpoMasterSch(w http.ResponseWriter, r *http.Request) {
 
 		lBrokerId, lErr1 := strconv.Atoi(lBroker)
 		if lErr1 != nil {
-			log.Println("Error in Convverting string to int", lErr1)
+			log.Println("ISFIMS01", lErr1)
 			lPrgrmResp.SINo = "1"
 			lPrgrmResp.MethodName = "Error in Converting BrokerId "
 			lPrgrmResp.Status = common.ErrorCode
@@ -120,13 +120,13 @@ func FetchIpoMasterSch(w http.ResponseWriter, r *http.Request) {
 			// Calling the FetchIpomaster method to get the Active Ipo details From exchange and
 			// then store the details  in the database
 			lNoToken := "Access Token not found"
-			lNSEToken, lErr1 := exchangecall.FetchNseIPOmaster(lUser, lBrokerId)
-			if lErr1 != nil {
-				log.Println("ISFIMS01", lErr1)
+			lNSEToken, lErr2 := exchangecall.FetchNseIPOmaster(lUser, lBrokerId)
+			if lErr2 != nil {
+				log.Println("ISFIMS02", lErr2)
 				lPrgrmResp.SINo = "1"
 				lPrgrmResp.MethodName = "NSE Fetch-IPO-Master"
 				lPrgrmResp.Status = common.ErrorCode
-				lPrgrmResp.ErrMsg = "ISFIMS01" + lErr1.Error()
+				lPrgrmResp.ErrMsg = "ISFIMS02" + lErr2.Error()
 				lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
 			} else {
 				if lNSEToken == common.ErrorCode {
@@ -135,24 +135,24 @@ func FetchIpoMasterSch(w http.ResponseWriter, r *http.Request) {
 					lPrgrmResp.Status = common.ErrorCode
 					lPrgrmResp.ErrMsg = lNoToken
 					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
-					log.Println("NSE IPO Details FETCHING ERROR")
+					// log.Println("NSE IPO Details FETCHING ERROR")
 				} else {
 					lPrgrmResp.SINo = "1"
 					lPrgrmResp.MethodName = "NSE Fetch-IPO-Master"
 					lPrgrmResp.Status = common.SuccessCode
 					lPrgrmResp.ErrMsg = common.SUCCESS
 					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
-					log.Println("NSE IPO Details Fetched Successfully")
+					// log.Println("NSE IPO Details Fetched Successfully")
 				}
 			}
 
-			lBseToken, lErr2 := exchangecall.FetchBseIPOmaster(lUser, lBrokerId)
-			if lErr2 != nil {
-				log.Println("ISFIMS02", lErr2)
+			lBseToken, lErr3 := exchangecall.FetchBseIPOmaster(lUser, lBrokerId)
+			if lErr3 != nil {
+				log.Println("ISFIMS03", lErr3)
 				lPrgrmResp.SINo = "2"
 				lPrgrmResp.MethodName = "BSE Fetch-IPO-Master"
 				lPrgrmResp.Status = common.ErrorCode
-				lPrgrmResp.ErrMsg = "ISFIMS02" + lErr2.Error()
+				lPrgrmResp.ErrMsg = "ISFIMS03" + lErr3.Error()
 				lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
 			} else {
 				if lBseToken == common.ErrorCode {
@@ -161,25 +161,25 @@ func FetchIpoMasterSch(w http.ResponseWriter, r *http.Request) {
 					lPrgrmResp.Status = common.ErrorCode
 					lPrgrmResp.ErrMsg = lNoToken
 					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
-					log.Println("BSE IPO Details Fetching Error")
+					// log.Println("BSE IPO Details Fetching Error")
 				} else {
 					lPrgrmResp.SINo = "2"
 					lPrgrmResp.MethodName = "BSE Fetch-IPO-Master"
 					lPrgrmResp.Status = common.SuccessCode
 					lPrgrmResp.ErrMsg = common.SUCCESS
 					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
-					log.Println("BSE IPO Details Fetched Successfully")
+					// log.Println("BSE IPO Details Fetched Successfully")
 				}
 			}
 
 			//sgb master fetch in bse exchange
-			lSgbNseToken, lErr3 := exchangecall.FetchSgbMasterNSE(lUser, lBrokerId)
-			if lErr3 != nil {
-				log.Println("ISFIMS03", lErr3)
+			lSgbNseToken, lErr4 := exchangecall.FetchSgbMasterNSE(lUser, lBrokerId)
+			if lErr4 != nil {
+				log.Println("ISFIMS04", lErr4)
 				lPrgrmResp.SINo = "3"
 				lPrgrmResp.MethodName = "NSE Fetch-SGB-Master"
 				lPrgrmResp.Status = common.ErrorCode
-				lPrgrmResp.ErrMsg = "ISFIMS03" + lErr3.Error()
+				lPrgrmResp.ErrMsg = "ISFIMS04" + lErr4.Error()
 				lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
 			} else {
 				if lSgbNseToken == common.ErrorCode {
@@ -188,22 +188,49 @@ func FetchIpoMasterSch(w http.ResponseWriter, r *http.Request) {
 					lPrgrmResp.Status = common.ErrorCode
 					lPrgrmResp.ErrMsg = lNoToken
 					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
-					log.Println("NSE Fetch SGB Master Error")
+					// log.Println("NSE Fetch SGB Master Error")
 				} else {
 					lPrgrmResp.SINo = "3"
 					lPrgrmResp.MethodName = "NSE Fetch-SGB-Master"
 					lPrgrmResp.Status = common.SuccessCode
 					lPrgrmResp.ErrMsg = common.SUCCESS
 					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
-					log.Println("NSE SGB Master Fetched Successfully")
+					// log.Println("NSE SGB Master Fetched Successfully")
+				}
+			}
+
+			//NCB master fetch in Nse exchange
+			lNcbNseToken, lErr5 := exchangecall.FetchNcbMasterNSE(lUser, lBrokerId)
+			if lErr5 != nil {
+				log.Println("ISFIMS05", lErr5)
+				lPrgrmResp.SINo = "4"
+				lPrgrmResp.MethodName = "NSE Fetch-NCB-Master"
+				lPrgrmResp.Status = common.ErrorCode
+				lPrgrmResp.ErrMsg = "ISFIMS05" + lErr5.Error()
+				lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
+			} else {
+				if lNcbNseToken == common.ErrorCode {
+					lPrgrmResp.SINo = "4"
+					lPrgrmResp.MethodName = "NSE Fetch-NCB-Master"
+					lPrgrmResp.Status = common.ErrorCode
+					lPrgrmResp.ErrMsg = lNoToken
+					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
+					// log.Println("NSE Fetch NCB Master Error")
+				} else {
+					lPrgrmResp.SINo = "4"
+					lPrgrmResp.MethodName = "NSE Fetch-NCB-Master"
+					lPrgrmResp.Status = common.SuccessCode
+					lPrgrmResp.ErrMsg = common.SUCCESS
+					lRespRec.ResponseArr = append(lRespRec.ResponseArr, lPrgrmResp)
+					// log.Println("NSE NCB Master Fetched Successfully")
 				}
 			}
 		}
 		// Marshal the Response Structure into lData
-		lData, lErr4 := json.Marshal(lRespRec)
-		if lErr4 != nil {
-			log.Println("ISFIMS04", lErr4)
-			fmt.Fprintf(w, "ISFIMS04"+lErr4.Error())
+		lData, lErr6 := json.Marshal(lRespRec)
+		if lErr6 != nil {
+			log.Println("ISFIMS06", lErr6)
+			fmt.Fprintf(w, "ISFIMS06"+lErr6.Error())
 		} else {
 			fmt.Fprintf(w, string(lData))
 		}

@@ -7,6 +7,7 @@ import (
 	"fcs23pkg/common"
 	"fcs23pkg/util/emailUtil"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"text/template"
@@ -30,77 +31,96 @@ type sgbOrderval struct {
 func SgbEndDate(w http.ResponseWriter, r *http.Request) {
 	(w).Header().Set("Access-Control-Allow-Origin", "*")
 	(w).Header().Set("Access-Control-Allow-Credentials", "true")
-	(w).Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	(w).Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	(w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, credentials")
 	log.Println("SgbEndDate (+)", r.Method)
-	if r.Method == "GET" {
-
+	if r.Method == "POST" {
 		var lRespRec sgbOrderval
-		lSgbIssuesList, lErr1 := sgbschedule.PlacingSgbOrder(r)
+		// Read the request body values in lBody variable
+		lBody, lErr1 := ioutil.ReadAll(r.Body)
+		log.Println(string(lBody))
 		if lErr1 != nil {
-			log.Println("SED01", lErr1)
+			log.Println("SSED01", lErr1.Error())
 			lRespRec.Status = common.ErrorCode
 			lRespRec.ErrMsg = lErr1.Error()
-			var lSgbRec sgbschedule.SgbIssueList
-			lSgbRec.Symbol = "SED01" + lErr1.Error()
-			lSgbIssuesList = append(lSgbIssuesList, lSgbRec)
-			// lSgbOrders, lErr1 := ConstructMailSgborders(lSgbIssuesList)
-			// if lErr1 != nil {
-			// 	log.Println("Error in ConstructMailSgborders")
-			// } else {
-			// 	// log.Println("lSgbOrders Mail Content", lSgbOrders)
-			// 	lErr2 := emailUtil.SendEmail(lSgbOrders, "SgbEndDayReport")
-			// 	if lErr2 != nil {
-			// 		log.Println("lErr2", lErr2)
-			// 	}
-			// }
 		} else {
-			if lSgbIssuesList == nil {
-				//commented by pavithra no need to send mail in this API Scheduler will send this Email to appsupport
-				// lSgbOrders, lErr2 := ConstructMailSgborders(lSgbIssuesList)
-				// if lErr2 != nil {
-				// 	log.Println("SED02", lErr2)
-				// 	lRespRec.Status = common.ErrorCode
-				// 	lRespRec.ErrMsg = lErr2.Error()
-				// 	log.Println("Error in ConstructMailSgborders")
-				// } else {
-				// 	// log.Println("lSgbOrders Mail Content", lSgbOrders)
-				// 	lErr2 := emailUtil.SendEmail(lSgbOrders, "SgbEndDayReport")
-				// 	if lErr2 != nil {
-				// 		log.Println("lErr2", lErr2)
-				// 	}
-				// }
-				// } else {
-				var lSgbRec sgbschedule.SgbIssueList
-				lSgbRec.Symbol = "No SGB Issues ending today"
-				lRespRec.Status = common.ErrorCode
-				lSgbIssuesList = append(lSgbIssuesList, lSgbRec)
+			config := common.ReadTomlConfig("toml/SgbConfig.toml")
+			lApiKey := fmt.Sprintf("%v", config.(map[string]interface{})["SGB_API_KEY"])
+			// SGB_API_KEY Validation
+			lBodyString := string(lBody)
+			if lBodyString == lApiKey {
+				lSgbIssuesList, lErr2 := sgbschedule.PlacingSgbOrder(r)
+				if lErr2 != nil {
+					log.Println("SED02", lErr2)
+					lRespRec.Status = common.ErrorCode
+					lRespRec.ErrMsg = lErr2.Error()
+					var lSgbRec sgbschedule.SgbIssueList
+					lSgbRec.Symbol = "SED02" + lErr2.Error()
+					lSgbIssuesList = append(lSgbIssuesList, lSgbRec)
+					// lSgbOrders, lErr1 := ConstructMailSgborders(lSgbIssuesList)
+					// if lErr1 != nil {
+					// 	log.Println("Error in ConstructMailSgborders")
+					// } else {
+					// 	// log.Println("lSgbOrders Mail Content", lSgbOrders)
+					// 	lErr2 := emailUtil.SendEmail(lSgbOrders, "SgbEndDayReport")
+					// 	if lErr2 != nil {
+					// 		log.Println("lErr2", lErr2)
+					// 	}
+					// }
+				} else {
+					if lSgbIssuesList == nil {
+						//commented by pavithra no need to send mail in this API Scheduler will send this Email to appsupport
+						// lSgbOrders, lErr2 := ConstructMailSgborders(lSgbIssuesList)
+						// if lErr2 != nil {
+						// 	log.Println("SED02", lErr2)
+						// 	lRespRec.Status = common.ErrorCode
+						// 	lRespRec.ErrMsg = lErr2.Error()
+						// 	log.Println("Error in ConstructMailSgborders")
+						// } else {
+						// 	// log.Println("lSgbOrders Mail Content", lSgbOrders)
+						// 	lErr2 := emailUtil.SendEmail(lSgbOrders, "SgbEndDayReport")
+						// 	if lErr2 != nil {
+						// 		log.Println("lErr2", lErr2)
+						// 	}
+						// }
+						// } else {
+						var lSgbRec sgbschedule.SgbIssueList
+						lSgbRec.Symbol = "No SGB Issues ending today"
+						lRespRec.Status = common.ErrorCode
+						lSgbIssuesList = append(lSgbIssuesList, lSgbRec)
 
-				//commented by pavithra no need to send mail in this API Scheduler will send this Email to appsupport
-				// lSgbOrders, lErr1 := ConstructMailSgborders(lSgbIssuesList)
-				// if lErr1 != nil {
-				// 	log.Println("SED03", lErr1)
-				// 	lRespRec.Status = common.ErrorCode
-				// 	lRespRec.ErrMsg = lErr1.Error()
-				// 	log.Println("Error in ConstructMailSgborders")
-				// } else {
-				// 	// log.Println("lSgbOrders Mail Content", lSgbOrders)
-				// 	lErr2 := emailUtil.SendEmail(lSgbOrders, "SgbEndDayReport")
-				// 	if lErr2 != nil {
-				// 		log.Println("lErr2", lErr2)
-				// 	}
-				// }
+						//commented by pavithra no need to send mail in this API Scheduler will send this Email to appsupport
+						// lSgbOrders, lErr1 := ConstructMailSgborders(lSgbIssuesList)
+						// if lErr1 != nil {
+						// 	log.Println("SED03", lErr1)
+						// 	lRespRec.Status = common.ErrorCode
+						// 	lRespRec.ErrMsg = lErr1.Error()
+						// 	log.Println("Error in ConstructMailSgborders")
+						// } else {
+						// 	// log.Println("lSgbOrders Mail Content", lSgbOrders)
+						// 	lErr2 := emailUtil.SendEmail(lSgbOrders, "SgbEndDayReport")
+						// 	if lErr2 != nil {
+						// 		log.Println("lErr2", lErr2)
+						// 	}
+						// }
+					}
+				}
+				lRespRec.SgbOrderList = lSgbIssuesList
+			} else {
+				lRespRec.Status = common.ErrorCode
+				lRespRec.ErrMsg = "Authentication Restricted to call API"
 			}
 		}
-		lRespRec.SgbOrderList = lSgbIssuesList
-		lData, lErr2 := json.Marshal(lRespRec)
-		if lErr2 != nil {
-			log.Println("SED02", lErr2)
-			fmt.Fprintf(w, "SED02"+lErr2.Error())
+		log.Println("response", lRespRec)
+		lData, lErr3 := json.Marshal(lRespRec)
+		if lErr3 != nil {
+			log.Println("SED03", lErr3)
+			fmt.Fprintf(w, "SED03"+lErr3.Error())
 		} else {
 			fmt.Fprintf(w, string(lData))
 		}
 	}
+
 	log.Println("SgbEndDate (-)", r.Method)
 }
 

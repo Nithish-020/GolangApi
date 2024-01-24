@@ -243,14 +243,14 @@ func ValidateAbhiPageHSToken(w http.ResponseWriter, req *http.Request) {
 		//-------------------------------------------------------------------
 		//Login AUTH API method
 		//-------------------------------------------------------------------
-		log.Println("AuthInputVar Response: ", authInputVar)
+		// log.Println("AuthInputVar Response: ", authInputVar)
 		lLoginResp, lErr := ValidateLoginForEmail(authInputVar)
-		log.Println("lLoginResp", lLoginResp)
+		// log.Println("lLoginResp", lLoginResp)
 		if lErr != nil {
 			wallreturnVar.Status = "E"
 			wallreturnVar.Emsg = lErr.Error()
 		} else {
-			log.Println("ValidateLoginEmail Response: ", lLoginResp)
+			// log.Println("ValidateLoginEmail Response: ", lLoginResp)
 			if lLoginResp.Status == "SUCCESS" {
 				lAppName, lErr := brokers.GetAppName(lBrokerId)
 				if lErr != nil {
@@ -282,7 +282,7 @@ func ValidateAbhiPageHSToken(w http.ResponseWriter, req *http.Request) {
 
 							//generate session
 							wallreturnVar.Token = GenerateAbhiSessionToken(db, authInputVar.ClientID, lAppName, reqDtl, lBrokerId)
-							log.Println("token", wallreturnVar.Token)
+							// log.Println("token", wallreturnVar.Token)
 							if wallreturnVar.Token == "" {
 								//wallreturnVar.Emsg = "Something went wrong (0x133). please try after sometime."
 								wallreturnVar.Status = "I"

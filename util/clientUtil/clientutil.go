@@ -127,7 +127,7 @@ func GetClientName(ClientId string) (string, error) {
 
 		sqlString := `select distinct client_name from ` + common.TechExcelPrefix + `client_master
 	where client_id = $1`
-		log.Println("sqlString := ", sqlString)
+		// log.Println("sqlString := ", sqlString)
 		rows, err := db.Query(sqlString, ClientId)
 		if err != nil {
 			common.LogDebug("clientUtil.GetClientName", ClientId+":(CGCN02)", err.Error())

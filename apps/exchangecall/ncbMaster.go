@@ -32,15 +32,15 @@ func FetchNCBMaster(pUser string, pBrokerId int) (string, error) {
 	lString := common.ErrorCode
 	lTokenNse, lErr1 := FetchNcbMasterNSE(pUser, pBrokerId)
 	if lErr1 != nil {
-		log.Println("Error fetching NCB master records:", lErr1)
+		// log.Println("Error fetching NCB master records:", lErr1)
 		log.Println("NFNM01", lErr1)
 		return lString, lErr1
 	} else {
 		if lTokenNse != common.ErrorCode {
 			lString = common.SuccessCode
 		}
-		log.Println("lTokenNse", lTokenNse, lString)
-		log.Println("NCB master records fetched and processed successfully!")
+		// log.Println("lTokenNse", lTokenNse, lString)
+		// log.Println("NCB master records fetched and processed successfully!")
 	}
 
 	log.Println("FetchNCBMaster (-)")
@@ -73,15 +73,16 @@ func FetchNcbMasterNSE(pUser string, pBrokerId int) (string, error) {
 		log.Println("FNM01", lErr1)
 		return lNoToken, lErr1
 	} else {
-		log.Println("lToken", lToken)
+		// log.Println("lToken", lToken)
 		if lToken != "" {
 			lErr2 := getNcbMaster(lToken, pUser)
 			if lErr2 != nil {
 				log.Println("FNM02", lErr2)
 				return lNoToken, lErr2
+			} else {
+				lNoToken = common.SuccessCode
 			}
-			lNoToken = common.SuccessCode
-			log.Println("lNoToken", lNoToken)
+			// log.Println("lNoToken", lNoToken)
 		}
 	}
 	log.Println("FetchNcbMasterNSE(-)")
@@ -107,7 +108,7 @@ Date: 03 Oct 2023
 */
 func getNcbMaster(pToken string, pUser string) error {
 	log.Println("getNcbMaster (+)")
-	log.Println("pToken: getNcbMaster", pToken)
+	// log.Println("pToken: getNcbMaster", pToken)
 
 	//create instance for NcbResponseStruct
 	var lNcbRespRec []nsencb.NcbDetailStruct
@@ -116,7 +117,7 @@ func getNcbMaster(pToken string, pUser string) error {
 		log.Println("SGNM01", lErr1)
 		return lErr1
 	} else {
-		log.Println("pToken", pToken)
+		// log.Println("pToken", pToken)
 		lNcbRespRec = lNcbResp.Data
 
 		lErr2 := InsertNcbData(lNcbRespRec, pUser, common.NSE)
@@ -239,7 +240,7 @@ func CheckNcbDataExists(pNcbRespRec nsencb.NcbDetailStruct, pExchange string) (i
 			}
 		}
 	}
-	log.Println(lId, "lId")
+	// log.Println(lId, "lId")
 	log.Println("CheckNcbDataExists(-)")
 	return lId, nil
 }
@@ -283,12 +284,12 @@ func InsertNcbRecord(pNcbRespRec nsencb.NcbDetailStruct, pUser string, pExchange
 			pNcbRespRec = ChangeDateFormats(pNcbRespRec)
 		}
 
-		log.Println("Time VALUE11111", pNcbRespRec.LastDayBiddingEndTime)
+		// log.Println("Time VALUE11111", pNcbRespRec.LastDayBiddingEndTime)
 
 		if pNcbRespRec.LastDayBiddingEndTime == "" {
 			pNcbRespRec.LastDayBiddingEndTime = "1970-01-01 00:00:00"
 
-			log.Println("Using default formattedTime", pNcbRespRec.LastDayBiddingEndTime)
+			// log.Println("Using default formattedTime", pNcbRespRec.LastDayBiddingEndTime)
 
 			lCoreString := `insert into a_ncb_master(Symbol,Series,Name,Lotsize,FaceValue,MinBidQuantity,MinPrice,MaxPrice,TickSize,CutoffPrice,
 			BiddingStartDate,BiddingEndDate,DailyStartTime,DailyEndTime,T1ModStartDate,T1ModEndDate,T1ModStartTime,T1ModEndTime,
@@ -310,12 +311,12 @@ func InsertNcbRecord(pNcbRespRec nsencb.NcbDetailStruct, pUser string, pExchange
 
 			parsedTime, err := time.Parse("2006-01-02T15:04:05-0700", pNcbRespRec.LastDayBiddingEndTime)
 			if err != nil {
-				log.Println("Error parsing LastDayBiddingEndTime:", err)
+				// log.Println("Error parsing LastDayBiddingEndTime:", err)
 				return err
 			}
 
 			pNcbRespRec.LastDayBiddingEndTime = parsedTime.Format("2006-01-02 15:04:05")
-			log.Println("Formatted LastDayBiddingEndTime:", pNcbRespRec.LastDayBiddingEndTime)
+			// log.Println("Formatted LastDayBiddingEndTime:", pNcbRespRec.LastDayBiddingEndTime)
 
 			lCoreString := `insert into a_ncb_master(Symbol,Series,Name,Lotsize,FaceValue,MinBidQuantity,MinPrice,MaxPrice,TickSize,CutoffPrice,BiddingStartDate,BiddingEndDate,DailyStartTime,DailyEndTime,T1ModStartDate,T1ModEndDate,T1ModStartTime,T1ModEndTime,
 		   Isin,IssueSize,IssueValueSize,MaxQuantity,AllotmentDate,LastDayBiddingEndTime,Exchange,CreatedBy,CretaedDate,UpdatedBy,UpdatedDate)
@@ -374,7 +375,7 @@ func UpdateNcbRecord(pNcbRespRec nsencb.NcbDetailStruct, pId int, pUser string, 
 		if pNcbRespRec.LastDayBiddingEndTime == "" {
 			pNcbRespRec.LastDayBiddingEndTime = "1970-01-01 00:00:00"
 
-			log.Println("Using default formattedTime", pNcbRespRec.LastDayBiddingEndTime)
+			// log.Println("Using default formattedTime", pNcbRespRec.LastDayBiddingEndTime)
 
 			lCoreString := `update a_ncb_master n 
 		                set n.Symbol = ?, n.Series = ?,n.Name = ?,n.Lotsize = ?, n.FaceValue = ?,n.MinBidQuantity = ?,n.MinPrice = ?,
@@ -393,12 +394,12 @@ func UpdateNcbRecord(pNcbRespRec nsencb.NcbDetailStruct, pId int, pUser string, 
 		} else {
 			parsedTime, err := time.Parse("2006-01-02T15:04:05-0700", pNcbRespRec.LastDayBiddingEndTime)
 			if err != nil {
-				log.Println("Error parsing LastDayBiddingEndTime:", err)
+				// log.Println("Error parsing LastDayBiddingEndTime:", err)
 				return err
 			}
 
 			pNcbRespRec.LastDayBiddingEndTime = parsedTime.Format("2006-01-02 15:04:05")
-			log.Println("Formatted LastDayBiddingEndTime:", pNcbRespRec.LastDayBiddingEndTime)
+			// log.Println("Formatted LastDayBiddingEndTime:", pNcbRespRec.LastDayBiddingEndTime)
 			lCoreString := `update a_ncb_master n 
 		                set n.Symbol = ?, n.Series = ?,n.Name = ?,n.Lotsize = ?, n.FaceValue = ?,n.MinBidQuantity = ?,n.MinPrice = ?,
 		               n.MaxPrice = ?,n.TickSize = ?,n.BiddingStartDate = ?,n.BiddingEndDate = ?,n.DailyStartTime = ?,n.DailyEndTime = ?,
@@ -429,7 +430,7 @@ func ChangeDateFormats(pNcbRespRec nsencb.NcbDetailStruct) nsencb.NcbDetailStruc
 	if pNcbRespRec.BiddingStartDate != "" {
 		lStartDate, _ := time.Parse("02-01-2006", pNcbRespRec.BiddingStartDate)
 		pNcbRespRec.BiddingStartDate = lStartDate.Format("2006-01-02")
-		log.Println(pNcbRespRec.BiddingStartDate, "BiddingStartDate")
+		// log.Println(pNcbRespRec.BiddingStartDate, "BiddingStartDate")
 	} else {
 		pNcbRespRec.BiddingStartDate = "0000-00-00"
 	}
@@ -437,7 +438,7 @@ func ChangeDateFormats(pNcbRespRec nsencb.NcbDetailStruct) nsencb.NcbDetailStruc
 	if pNcbRespRec.BiddingEndDate != "" {
 		lEndDate, _ := time.Parse("02-01-2006", pNcbRespRec.BiddingEndDate)
 		pNcbRespRec.BiddingEndDate = lEndDate.Format("2006-01-02")
-		log.Println(pNcbRespRec.BiddingEndDate, "BiddingEndDate")
+		// log.Println(pNcbRespRec.BiddingEndDate, "BiddingEndDate")
 	} else {
 		pNcbRespRec.BiddingEndDate = "0000-00-00"
 	}
@@ -445,7 +446,7 @@ func ChangeDateFormats(pNcbRespRec nsencb.NcbDetailStruct) nsencb.NcbDetailStruc
 	if pNcbRespRec.T1ModStartDate != "" {
 		lEndDate, _ := time.Parse("02-01-2006", pNcbRespRec.T1ModStartDate)
 		pNcbRespRec.T1ModStartDate = lEndDate.Format("2006-01-02")
-		log.Println(pNcbRespRec.T1ModStartDate, "T1ModStartDate")
+		// log.Println(pNcbRespRec.T1ModStartDate, "T1ModStartDate")
 	} else {
 		pNcbRespRec.T1ModStartDate = "0000-00-00"
 	}
@@ -453,7 +454,7 @@ func ChangeDateFormats(pNcbRespRec nsencb.NcbDetailStruct) nsencb.NcbDetailStruc
 	if pNcbRespRec.T1ModEndDate != "" {
 		lEndDate, _ := time.Parse("02-01-2006", pNcbRespRec.T1ModEndDate)
 		pNcbRespRec.T1ModEndDate = lEndDate.Format("2006-01-02")
-		log.Println(pNcbRespRec.T1ModEndDate, "T1ModEndDate")
+		// log.Println(pNcbRespRec.T1ModEndDate, "T1ModEndDate")
 	} else {
 		pNcbRespRec.T1ModEndDate = "0000-00-00"
 	}
@@ -465,7 +466,7 @@ func ChangeDateFormats(pNcbRespRec nsencb.NcbDetailStruct) nsencb.NcbDetailStruc
 	} else {
 		pNcbRespRec.T1ModStartTime = lString
 	}
-	log.Println("pNcbRespRec.T1ModStartTime", pNcbRespRec.T1ModStartTime)
+	// log.Println("pNcbRespRec.T1ModStartTime", pNcbRespRec.T1ModStartTime)
 
 	lString, lErr = common.ChangeTimeFormat("15:04:05", pNcbRespRec.T1ModEndTime)
 	if lErr != nil {
@@ -474,7 +475,7 @@ func ChangeDateFormats(pNcbRespRec nsencb.NcbDetailStruct) nsencb.NcbDetailStruc
 	} else {
 		pNcbRespRec.T1ModEndTime = lString
 	}
-	log.Println("pNcbRespRec.T1ModEndTime", pNcbRespRec.T1ModEndTime)
+	// log.Println("pNcbRespRec.T1ModEndTime", pNcbRespRec.T1ModEndTime)
 
 	log.Println("ChangeDateFormat (-)")
 	return pNcbRespRec

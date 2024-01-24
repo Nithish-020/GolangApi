@@ -101,7 +101,7 @@ func GetClientName(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			// lRespRec.ClientName = lClientName
-			log.Println("ClientName", lClientName, lClientId)
+			// log.Println("ClientName", lClientName, lClientId)
 
 			// Split the name into words
 			words := strings.Fields(lClientName)
@@ -113,7 +113,7 @@ func GetClientName(w http.ResponseWriter, r *http.Request) {
 			}
 			lRespRec.ClientName = lInitials
 
-			log.Println("Final ClientName", lRespRec.ClientName)
+			// log.Println("Final ClientName", lRespRec.ClientName)
 
 		}
 		//-----------END OF GETTING CLIENT AND STAFF DETAILS----------------

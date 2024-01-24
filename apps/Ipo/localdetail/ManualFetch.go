@@ -127,6 +127,21 @@ func ManualFetch(w http.ResponseWriter, r *http.Request) {
 					} else {
 						lManualResp.Status = common.ErrorCode
 					}
+					// fetch ncb master
+					lNCBFetchErrCode, lErr2 := exchangecall.FetchNCBMaster(lClientId, lBrokerId)
+					if lErr2 != nil {
+						log.Println("LMF03", lErr2)
+						lManualResp.Status = common.ErrorCode
+						lManualResp.ErrMsg = "LMF03" + lErr2.Error()
+						fmt.Fprintf(w, helpers.GetErrorString("LMF03", "Unable to Fetch NCB Details. Please try after sometime"))
+						return
+					} else {
+						if lNCBFetchErrCode != common.ErrorCode {
+							lManualResp.Status = common.SuccessCode
+						} else {
+							lManualResp.Status = common.ErrorCode
+						}
+					}
 				}
 			}
 			// 	//fetch sgb master from exchange
@@ -140,20 +155,6 @@ func ManualFetch(w http.ResponseWriter, r *http.Request) {
 			// 	// } else {
 			// }
 
-			// lNCBFetchErrCode, lErr2 := exchangecall.FetchNCBMaster(lClientId, lBrokerId)
-			// if lErr2 != nil {
-			// 	log.Println("LMF03", lErr2)
-			// 	lManualResp.Status = common.ErrorCode
-			// 	lManualResp.ErrMsg = "LMF03" + lErr2.Error()
-			// 	fmt.Fprintf(w, helpers.GetErrorString("LMF03", "Unable to Fetch NCB Details. Please try after sometime"))
-			// 	return
-			// } else {
-			// 	if lNCBFetchErrCode != common.ErrorCode {
-			// 		lManualResp.Status = common.SuccessCode
-			// 	} else {
-			// 		lManualResp.Status = common.ErrorCode
-			// 	}
-			// }
 		}
 		// Marshal the Response Structure into lData
 		lData, lErr4 := json.Marshal(lManualResp)
