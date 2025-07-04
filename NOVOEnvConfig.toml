@@ -1,2 +1,5 @@
-ABHIDomain = "http://localhost/"
-ABHIAppName = "Dev"
+#ABHIDomain = "http://localhost/"
+#ABHIAppName = "Dev"
+
+ABHIDomain = "https://novoflatrade.com/"
+ABHIAppName = "NOVO"

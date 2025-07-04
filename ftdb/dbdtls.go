@@ -19,7 +19,9 @@ const (
 
 // Initializing DB Details
 func (d *AllUsedDatabases) Init() {
+
 	dbconfig := genpkg.ReadTomlConfig("./dbconfig.toml")
+
 	//Setting Techexcel UAT DB Connection Details
 	d.TechExcelUAT.Server = fmt.Sprintf("%v", dbconfig.(map[string]interface{})["TechExcelUATServer"])
 	d.TechExcelUAT.Port, _ = strconv.Atoi(fmt.Sprintf("%v", dbconfig.(map[string]interface{})["TechExcelUATPort"]))
