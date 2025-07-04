@@ -1,0 +1,5 @@
+2025/07/04 18:46:49 Today 18:46:49
+2025/07/04 18:46:49 GetAllowOrigin (+)
+2025/07/04 18:48:04 BGAO02 dial tcp 192.168.2.5:3306: connect: operation timed out
+2025/07/04 18:48:04 Origin:  []
+2025/07/04 18:48:04 open ../NOVOEnvConfig.toml: no such file or directory

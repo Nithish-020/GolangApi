@@ -8,7 +8,7 @@ import (
 )
 
 func SetNovoEnvironment() {
-	config := genpkg.ReadTomlConfig("../NOVOEnvConfig.toml")
+	config := genpkg.ReadTomlConfig("./NOVOEnvConfig.toml")
 
 	common.ABHIDomain = fmt.Sprintf("%v", config.(map[string]interface{})["ABHIDomain"])
 	common.ABHIAppName = fmt.Sprintf("%v", config.(map[string]interface{})["ABHIAppName"])
